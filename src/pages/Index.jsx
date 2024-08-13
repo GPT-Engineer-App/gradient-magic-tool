@@ -51,6 +51,13 @@ const Index = () => {
     setSelectedPoint(index);
   };
 
+  const handleControlPointDrag = (pointIndex, cpIndex, newX, newY) => {
+    const newControlPoints = [...controlPoints];
+    const index = pointIndex * 4 + cpIndex;
+    newControlPoints[index] = { x: newX, y: newY };
+    setControlPoints(newControlPoints);
+  };
+
   const handleColorChange = (newColor) => {
     const newColors = [...colors];
     newColors[selectedPoint] = newColor;
@@ -110,6 +117,8 @@ const Index = () => {
               selectedPoint={selectedPoint}
               setSelectedPoint={setSelectedPoint}
               handlePointDrag={handlePointDrag}
+              controlPoints={controlPoints}
+              handleControlPointDrag={handleControlPointDrag}
             />
           </div>
         </div>
