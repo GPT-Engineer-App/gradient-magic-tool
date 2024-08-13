@@ -51,10 +51,10 @@ const PointsOverlay = ({ points, colors, selectedPoint, setSelectedPoint, handle
           {index === selectedPoint && controlPoints.length >= (index + 1) * 4 && (
             <>
               {[
+                { index: 3, label: 'Top' },
+                { index: 1, label: 'Trailing' },
                 { index: 2, label: 'Leading' },
-                { index: 1, label: 'Top' },
-                { index: 0, label: 'Trailing' },
-                { index: 3, label: 'Bottom' }
+                { index: 0, label: 'Bottom' }
               ].map(({ index: cpIndex, label }) => {
                 const cp = getControlPointPosition(index, cpIndex);
                 return (
