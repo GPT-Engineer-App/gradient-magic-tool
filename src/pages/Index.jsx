@@ -1,5 +1,4 @@
 import React, { useState, useRef } from 'react';
-import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -27,6 +26,7 @@ const Index = () => {
   const [renderer, setRenderer] = useState('webgl');
   const [selectedPoint, setSelectedPoint] = useState(0);
   const svgRef = useRef(null);
+  const containerRef = useRef(null);
 
   const handlePointDrag = (index, newX, newY) => {
     const newPoints = [...points];
@@ -65,9 +65,9 @@ const Index = () => {
         </Select>
       </div>
       <div className="flex flex-col md:flex-row gap-8">
-        <div className="w-full md:w-1/2 relative">
+        <div className="w-full md:w-1/2 relative" ref={containerRef}>
           <GradientComponent width={meshWidth} height={meshHeight} points={points} colors={colors} controlPoints={controlPoints} />
-          <svg ref={svgRef} className="absolute top-0 left-0 w-full h-full" viewBox="0 0 1 1" style={{pointerEvents: 'none'}}>
+          <svg ref={svgRef} className="absolute top-0 left-0 w-full h-full" viewBox="0 0 1 1" preserveAspectRatio="none">
             {points.map((point, index) => (
               <circle
                 key={index}
@@ -77,14 +77,15 @@ const Index = () => {
                 fill={colors[index]}
                 stroke="white"
                 strokeWidth="0.005"
-                style={{cursor: 'pointer', pointerEvents: 'auto'}}
+                style={{cursor: 'pointer'}}
                 onMouseDown={(e) => {
                   e.preventDefault();
                   const svg = svgRef.current;
-                  if (!svg) return;
+                  const container = containerRef.current;
+                  if (!svg || !container) return;
 
                   const startDrag = (e) => {
-                    const rect = svg.getBoundingClientRect();
+                    const rect = container.getBoundingClientRect();
                     const x = (e.clientX - rect.left) / rect.width;
                     const y = (e.clientY - rect.top) / rect.height;
                     handlePointDrag(index, Math.max(0, Math.min(1, x)), Math.max(0, Math.min(1, y)));
