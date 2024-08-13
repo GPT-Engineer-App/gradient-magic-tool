@@ -50,7 +50,12 @@ const PointsOverlay = ({ points, colors, selectedPoint, setSelectedPoint, handle
           />
           {index === selectedPoint && controlPoints.length >= (index + 1) * 4 && (
             <>
-              {[0, 1, 2, 3].map((cpIndex) => {
+              {[
+                { index: 2, label: 'Leading' },
+                { index: 1, label: 'Top' },
+                { index: 0, label: 'Trailing' },
+                { index: 3, label: 'Bottom' }
+              ].map(({ index: cpIndex, label }) => {
                 const cp = getControlPointPosition(index, cpIndex);
                 return (
                   <React.Fragment key={cpIndex}>
@@ -89,6 +94,16 @@ const PointsOverlay = ({ points, colors, selectedPoint, setSelectedPoint, handle
                         window.addEventListener('mouseup', stopDrag);
                       }}
                     />
+                    <text
+                      x={`${cp.x * 100}%`}
+                      y={`${cp.y * 100}%`}
+                      dx="6"
+                      dy="4"
+                      fontSize="10"
+                      fill="white"
+                    >
+                      {label}
+                    </text>
                   </React.Fragment>
                 );
               })}
