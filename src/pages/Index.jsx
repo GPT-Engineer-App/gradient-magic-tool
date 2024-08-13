@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Slider } from "@/components/ui/slider"
+import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import MeshGradient from '@/components/MeshGradient';
 import WebGLMeshGradient from '@/components/WebGLMeshGradient';
@@ -25,23 +25,24 @@ const Index = () => {
     ])
   );
   const [renderer, setRenderer] = useState('webgl');
+  const [selectedPoint, setSelectedPoint] = useState(0);
 
-  const handlePointChange = (index, axis, value) => {
+  const handlePointChange = (axis, value) => {
     const newPoints = [...points];
-    newPoints[index][axis] = value / 100;
+    newPoints[selectedPoint][axis] = parseFloat(value);
     setPoints(newPoints);
   };
 
-  const handleColorChange = (index, newColor) => {
+  const handleColorChange = (newColor) => {
     const newColors = [...colors];
-    newColors[index] = newColor;
+    newColors[selectedPoint] = newColor;
     setColors(newColors);
   };
 
-  const handleControlPointChange = (pointIndex, cpIndex, axis, value) => {
+  const handleControlPointChange = (cpIndex, axis, value) => {
     const newControlPoints = [...controlPoints];
-    const index = pointIndex * 4 + cpIndex;
-    newControlPoints[index][axis] = (value - 50) / 500; // Scale to -0.1 to 0.1
+    const index = selectedPoint * 4 + cpIndex;
+    newControlPoints[index][axis] = parseFloat(value);
     setControlPoints(newControlPoints);
   };
 
@@ -63,68 +64,92 @@ const Index = () => {
         </Select>
       </div>
       <div className="flex flex-col md:flex-row gap-8">
-        <div className="w-full md:w-1/2">
+        <div className="w-full md:w-1/2 relative">
           <GradientComponent width={meshWidth} height={meshHeight} points={points} colors={colors} controlPoints={controlPoints} />
+          <svg className="absolute top-0 left-0 w-full h-full" viewBox="0 0 100 100" style={{pointerEvents: 'none'}}>
+            {points.map((point, index) => (
+              <circle
+                key={index}
+                cx={point.x * 100}
+                cy={(1 - point.y) * 100}
+                r="2"
+                fill={colors[index]}
+                stroke="white"
+                strokeWidth="1"
+                style={{cursor: 'pointer', pointerEvents: 'auto'}}
+                onClick={() => setSelectedPoint(index)}
+              />
+            ))}
+          </svg>
         </div>
         <div className="w-full md:w-1/2">
-          {points.map((point, index) => (
-            <div key={index} className="mb-4 p-4 bg-gray-100 rounded-lg">
-              <div className="flex items-center mb-2">
-                <Label htmlFor={`color-${index}`} className="mr-2">Color {index + 1}:</Label>
-                <Input
-                  id={`color-${index}`}
-                  type="color"
-                  value={colors[index]}
-                  onChange={(e) => handleColorChange(index, e.target.value)}
-                  className="w-16 h-8"
-                />
-              </div>
-              <div className="mb-2">
-                <Label htmlFor={`x-${index}`}>X Position: {Math.round(point.x * 100)}%</Label>
-                <Slider
-                  id={`x-${index}`}
-                  min={0}
-                  max={100}
-                  step={1}
-                  value={[point.x * 100]}
-                  onValueChange={(value) => handlePointChange(index, 'x', value[0])}
-                  className="mt-2"
-                />
-              </div>
-              <div className="mb-2">
-                <Label htmlFor={`y-${index}`}>Y Position: {Math.round(point.y * 100)}%</Label>
-                <Slider
-                  id={`y-${index}`}
-                  min={0}
-                  max={100}
-                  step={1}
-                  value={[point.y * 100]}
-                  onValueChange={(value) => handlePointChange(index, 'y', value[0])}
-                  className="mt-2"
-                />
-              </div>
-              {['leading', 'top', 'trailing', 'bottom'].map((direction, cpIndex) => (
-                <div key={direction} className="mb-2">
-                  <Label htmlFor={`cp-${index}-${direction}`}>{direction} Control Point:</Label>
-                  <Slider
-                    id={`cp-${index}-${direction}`}
-                    min={0}
-                    max={100}
-                    step={1}
-                    value={[(controlPoints[index * 4 + cpIndex].x + 0.1) * 500]}
-                    onValueChange={(value) => handleControlPointChange(index, cpIndex, 'x', value[0])}
-                    className="mt-2"
-                  />
-                  <Slider
-                    min={0}
-                    max={100}
-                    step={1}
-                    value={[(controlPoints[index * 4 + cpIndex].y + 0.1) * 500]}
-                    onValueChange={(value) => handleControlPointChange(index, cpIndex, 'y', value[0])}
-                    className="mt-2"
+          <h2 className="text-xl font-semibold mb-4">Edit Point {selectedPoint + 1}</h2>
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <Label htmlFor="x-position">X Position:</Label>
+              <Input
+                id="x-position"
+                type="number"
+                min="0"
+                max="1"
+                step="0.01"
+                value={points[selectedPoint].x}
+                onChange={(e) => handlePointChange('x', e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="y-position">Y Position:</Label>
+              <Input
+                id="y-position"
+                type="number"
+                min="0"
+                max="1"
+                step="0.01"
+                value={points[selectedPoint].y}
+                onChange={(e) => handlePointChange('y', e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="mb-4">
+            <Label htmlFor="color">Color:</Label>
+            <Input
+              id="color"
+              type="color"
+              value={colors[selectedPoint]}
+              onChange={(e) => handleColorChange(e.target.value)}
+              className="w-full h-10"
+            />
+          </div>
+          <h3 className="text-lg font-semibold mb-2">Control Points</h3>
+          {['Leading', 'Top', 'Trailing', 'Bottom'].map((direction, cpIndex) => (
+            <div key={direction} className="mb-4">
+              <h4 className="font-medium mb-2">{direction}</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor={`cp-${direction}-x`}>X:</Label>
+                  <Input
+                    id={`cp-${direction}-x`}
+                    type="number"
+                    min="-0.5"
+                    max="0.5"
+                    step="0.01"
+                    value={controlPoints[selectedPoint * 4 + cpIndex].x}
+                    onChange={(e) => handleControlPointChange(cpIndex, 'x', e.target.value)}
                   />
                 </div>
-              ))}
+                <div>
+                  <Label htmlFor={`cp-${direction}-y`}>Y:</Label>
+                  <Input
+                    id={`cp-${direction}-y`}
+                    type="number"
+                    min="-0.5"
+                    max="0.5"
+                    step="0.01"
+                    value={controlPoints[selectedPoint * 4 + cpIndex].y}
+                    onChange={(e) => handleControlPointChange(cpIndex, 'y', e.target.value)}
+                  />
+                </div>
+              </div>
             </div>
           ))}
         </div>
