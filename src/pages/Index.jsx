@@ -23,16 +23,20 @@ const Index = () => {
   const drawGradient = () => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, Math.sqrt(canvas.width * canvas.width + canvas.height * canvas.height));
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     colors.forEach((color, index) => {
-      const x = positions[index].x / 100;
-      const y = positions[index].y / 100;
-      gradient.addColorStop(x * y, color);
-    });
+      const x = (positions[index].x / 100) * canvas.width;
+      const y = (positions[index].y / 100) * canvas.height;
+      const radius = Math.max(canvas.width, canvas.height) / 2;
 
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+      const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+      gradient.addColorStop(0, color);
+      gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    });
 
     generateCSS();
   };
@@ -41,7 +45,7 @@ const Index = () => {
     const gradientStops = colors.map((color, index) => {
       const x = positions[index].x;
       const y = positions[index].y;
-      return `radial-gradient(at ${x}% ${y}%, ${color} 0px, transparent 50%)`;
+      return `radial-gradient(circle at ${x}% ${y}%, ${color} 0%, rgba(255, 255, 255, 0) 50%)`;
     });
 
     const css = `
