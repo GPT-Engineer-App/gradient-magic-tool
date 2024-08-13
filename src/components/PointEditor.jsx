@@ -47,21 +47,6 @@ const PointEditor = ({ selectedPoint, points, colors, controlPoints, handleColor
         Control points affect the curvature of the gradient between this point and its neighbors.
         Values range from -0.5 to 0.5, where 0 is a straight line and larger absolute values create more pronounced curves.
       </p>
-      <div className="relative w-32 h-32 mx-auto mb-4 border border-gray-300">
-        <div className="absolute top-1/2 left-1/2 w-2 h-2 bg-black transform -translate-x-1/2 -translate-y-1/2"></div>
-        {['top', 'right', 'bottom', 'left'].map((direction) => {
-          const cp = controlPoints[selectedPoint][direction];
-          const x = 50 + cp.x * 100;
-          const y = 50 - cp.y * 100;
-          return (
-            <div
-              key={direction}
-              className="absolute w-2 h-2 bg-red-500 transform -translate-x-1/2 -translate-y-1/2"
-              style={{ left: `${x}%`, top: `${y}%` }}
-            ></div>
-          );
-        })}
-      </div>
       {['top', 'right', 'bottom', 'left'].map((direction) => (
         <div key={direction} className="mb-4">
           <h4 className="font-medium mb-2">{direction.charAt(0).toUpperCase() + direction.slice(1)}</h4>
