@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 
-const MeshGradient = ({ points, width = 400, height = 400 }) => {
+const MeshGradient = ({ width, height, points, colors }) => {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -8,30 +8,50 @@ const MeshGradient = ({ points, width = 400, height = 400 }) => {
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const gradientSize = Math.max(canvas.width, canvas.height) * 1.5;
+    const drawMeshGradient = () => {
+      const cols = width;
+      const rows = height;
 
-    points.forEach(({ x, y, color }) => {
-      const gradientX = (x / 100) * canvas.width;
-      const gradientY = (y / 100) * canvas.height;
+      for (let i = 0; i < rows - 1; i++) {
+        for (let j = 0; j < cols - 1; j++) {
+          const index = i * cols + j;
+          const topLeft = points[index];
+          const topRight = points[index + 1];
+          const bottomLeft = points[index + cols];
+          const bottomRight = points[index + cols + 1];
 
-      const gradient = ctx.createRadialGradient(
-        gradientX, gradientY, 0,
-        gradientX, gradientY, gradientSize
-      );
-      gradient.addColorStop(0, color);
-      gradient.addColorStop(1, 'rgba(0,0,0,0)');
+          const colorTopLeft = colors[index];
+          const colorTopRight = colors[index + 1];
+          const colorBottomLeft = colors[index + cols];
+          const colorBottomRight = colors[index + cols + 1];
 
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    });
-  }, [points, width, height]);
+          const gradient = ctx.createConicGradient(0, topLeft.x * canvas.width, topLeft.y * canvas.height);
+          gradient.addColorStop(0, colorTopLeft);
+          gradient.addColorStop(0.25, colorTopRight);
+          gradient.addColorStop(0.5, colorBottomRight);
+          gradient.addColorStop(0.75, colorBottomLeft);
+          gradient.addColorStop(1, colorTopLeft);
+
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.moveTo(topLeft.x * canvas.width, topLeft.y * canvas.height);
+          ctx.lineTo(topRight.x * canvas.width, topRight.y * canvas.height);
+          ctx.lineTo(bottomRight.x * canvas.width, bottomRight.y * canvas.height);
+          ctx.lineTo(bottomLeft.x * canvas.width, bottomLeft.y * canvas.height);
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
+    };
+
+    drawMeshGradient();
+  }, [width, height, points, colors]);
 
   return (
     <canvas
       ref={canvasRef}
-      width={width}
-      height={height}
+      width={400}
+      height={400}
       className="w-full h-auto border border-gray-300 rounded-lg shadow-lg"
     />
   );

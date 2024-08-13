@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -7,65 +7,48 @@ import { toast } from "sonner"
 import MeshGradient from '@/components/MeshGradient';
 
 const Index = () => {
+  const [meshWidth, setMeshWidth] = useState(3);
+  const [meshHeight, setMeshHeight] = useState(3);
   const [points, setPoints] = useState([
-    { x: 0, y: 0, color: '#ff0000' },
-    { x: 100, y: 0, color: '#00ff00' },
-    { x: 0, y: 100, color: '#0000ff' },
-    { x: 100, y: 100, color: '#ffff00' },
+    {x: 0, y: 0}, {x: 0.5, y: 0}, {x: 1, y: 0},
+    {x: 0, y: 0.5}, {x: 0.5, y: 0.5}, {x: 1, y: 0.5},
+    {x: 0, y: 1}, {x: 0.5, y: 1}, {x: 1, y: 1}
   ]);
-  const [cssOutput, setCssOutput] = useState('');
+  const [colors, setColors] = useState([
+    "#ff0000", "#800080", "#4B0082",
+    "#FFA500", "#FFFFFF", "#0000FF",
+    "#FFFF00", "#008000", "#3EB489"
+  ]);
 
-  useEffect(() => {
-    generateCSS();
-  }, [points]);
+  const handlePointChange = (index, axis, value) => {
+    const newPoints = [...points];
+    newPoints[index][axis] = value / 100;
+    setPoints(newPoints);
+  };
+
+  const handleColorChange = (index, newColor) => {
+    const newColors = [...colors];
+    newColors[index] = newColor;
+    setColors(newColors);
+  };
 
   const generateCSS = () => {
-    const gradientSize = 200; // Percentage, larger than the canvas
-    const gradientStops = points.map(({ x, y, color }) => {
-      return `radial-gradient(circle at ${x}% ${y}%, ${color} 0%, ${color}00 ${gradientSize}%)`;
-    });
+    // This is a simplified CSS generation. For a more accurate representation,
+    // you might need to use a more complex approach or a library.
+    const gradientStops = points.map((point, index) => 
+      `radial-gradient(circle at ${point.x * 100}% ${point.y * 100}%, ${colors[index]} 0%, ${colors[index]}00 100%)`
+    );
 
-    const css = `
-background-color: ${points[0].color};
+    return `
+background-color: ${colors[0]};
 background-image: ${gradientStops.join(', ')};
 background-size: 100% 100%;
 background-repeat: no-repeat;
     `.trim();
-
-    setCssOutput(css);
-  };
-
-  const handleColorChange = (index, newColor) => {
-    const newPoints = [...points];
-    newPoints[index].color = newColor;
-    setPoints(newPoints);
-  };
-
-  const handlePositionChange = (index, axis, value) => {
-    const newPoints = [...points];
-    newPoints[index][axis] = value;
-    setPoints(newPoints);
-  };
-
-  const handleAddPoint = () => {
-    if (points.length < 6) {
-      setPoints([...points, { x: 50, y: 50, color: '#ffffff' }]);
-    } else {
-      toast.error("Maximum of 6 points allowed");
-    }
-  };
-
-  const handleRemovePoint = (index) => {
-    if (points.length > 2) {
-      const newPoints = points.filter((_, i) => i !== index);
-      setPoints(newPoints);
-    } else {
-      toast.error("Minimum of 2 points required");
-    }
   };
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(cssOutput);
+    navigator.clipboard.writeText(generateCSS());
     toast.success("CSS copied to clipboard!");
   };
 
@@ -74,11 +57,10 @@ background-repeat: no-repeat;
       <h1 className="text-3xl font-bold mb-6">Mesh Gradient Generator</h1>
       <div className="flex flex-col md:flex-row gap-8">
         <div className="w-full md:w-1/2">
-          <MeshGradient points={points} width={400} height={400} />
+          <MeshGradient width={meshWidth} height={meshHeight} points={points} colors={colors} />
         </div>
         <div className="w-full md:w-1/2">
           <div className="mb-4">
-            <Button onClick={handleAddPoint} className="mr-2">Add Point</Button>
             <Button onClick={copyToClipboard}>Copy CSS</Button>
           </div>
           {points.map((point, index) => (
@@ -88,33 +70,32 @@ background-repeat: no-repeat;
                 <Input
                   id={`color-${index}`}
                   type="color"
-                  value={point.color}
+                  value={colors[index]}
                   onChange={(e) => handleColorChange(index, e.target.value)}
                   className="w-16 h-8"
                 />
-                <Button onClick={() => handleRemovePoint(index)} className="ml-2" variant="destructive">Remove</Button>
               </div>
               <div className="mb-2">
-                <Label htmlFor={`x-${index}`}>X Position: {point.x}%</Label>
+                <Label htmlFor={`x-${index}`}>X Position: {Math.round(point.x * 100)}%</Label>
                 <Slider
                   id={`x-${index}`}
                   min={0}
                   max={100}
                   step={1}
-                  value={[point.x]}
-                  onValueChange={(value) => handlePositionChange(index, 'x', value[0])}
+                  value={[point.x * 100]}
+                  onValueChange={(value) => handlePointChange(index, 'x', value[0])}
                   className="mt-2"
                 />
               </div>
               <div>
-                <Label htmlFor={`y-${index}`}>Y Position: {point.y}%</Label>
+                <Label htmlFor={`y-${index}`}>Y Position: {Math.round(point.y * 100)}%</Label>
                 <Slider
                   id={`y-${index}`}
                   min={0}
                   max={100}
                   step={1}
-                  value={[point.y]}
-                  onValueChange={(value) => handlePositionChange(index, 'y', value[0])}
+                  value={[point.y * 100]}
+                  onValueChange={(value) => handlePointChange(index, 'y', value[0])}
                   className="mt-2"
                 />
               </div>
@@ -125,7 +106,7 @@ background-repeat: no-repeat;
       <div className="mt-8">
         <h2 className="text-2xl font-semibold mb-2">Generated CSS</h2>
         <pre className="bg-gray-100 p-4 rounded-lg overflow-x-auto">
-          <code>{cssOutput}</code>
+          <code>{generateCSS()}</code>
         </pre>
       </div>
     </div>
