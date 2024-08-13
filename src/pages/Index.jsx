@@ -83,43 +83,45 @@ const Index = () => {
         </Select>
       </div>
       <div className="flex flex-col md:flex-row gap-8">
-        <div className="w-full md:w-1/2 relative aspect-square" ref={containerRef}>
-          <GradientComponent width={meshWidth} height={meshHeight} points={points} colors={colors} controlPoints={controlPoints} />
-          <svg ref={svgRef} className="absolute top-0 left-0 w-full h-full" preserveAspectRatio="xMidYMid meet">
-            {points.map((point, index) => (
-              <circle
-                key={index}
-                cx={`${point.x * 100}%`}
-                cy={`${point.y * 100}%`}
-                r="8"
-                fill={colors[index]}
-                stroke="white"
-                strokeWidth="2"
-                style={{cursor: 'pointer'}}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  const svg = svgRef.current;
-                  if (!svg) return;
+        <div className="w-full md:w-1/2 relative" ref={containerRef}>
+          <div className="aspect-square relative overflow-visible">
+            <GradientComponent width={meshWidth} height={meshHeight} points={points} colors={colors} controlPoints={controlPoints} />
+            <svg ref={svgRef} className="absolute top-0 left-0 w-full h-full overflow-visible" preserveAspectRatio="xMidYMid meet">
+              {points.map((point, index) => (
+                <circle
+                  key={index}
+                  cx={`${point.x * 100}%`}
+                  cy={`${point.y * 100}%`}
+                  r="8"
+                  fill={colors[index]}
+                  stroke="white"
+                  strokeWidth="2"
+                  style={{cursor: 'pointer'}}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    const svg = svgRef.current;
+                    if (!svg) return;
 
-                  const startDrag = (e) => {
-                    const rect = svg.getBoundingClientRect();
-                    const x = (e.clientX - rect.left) / rect.width;
-                    const y = (e.clientY - rect.top) / rect.height;
-                    handlePointDrag(index, Math.max(0, Math.min(1, x)), Math.max(0, Math.min(1, y)));
-                  };
+                    const startDrag = (e) => {
+                      const rect = svg.getBoundingClientRect();
+                      const x = (e.clientX - rect.left) / rect.width;
+                      const y = (e.clientY - rect.top) / rect.height;
+                      handlePointDrag(index, Math.max(0, Math.min(1, x)), Math.max(0, Math.min(1, y)));
+                    };
 
-                  const stopDrag = () => {
-                    window.removeEventListener('mousemove', startDrag);
-                    window.removeEventListener('mouseup', stopDrag);
-                  };
+                    const stopDrag = () => {
+                      window.removeEventListener('mousemove', startDrag);
+                      window.removeEventListener('mouseup', stopDrag);
+                    };
 
-                  window.addEventListener('mousemove', startDrag);
-                  window.addEventListener('mouseup', stopDrag);
-                }}
-                onClick={() => setSelectedPoint(index)}
-              />
-            ))}
-          </svg>
+                    window.addEventListener('mousemove', startDrag);
+                    window.addEventListener('mouseup', stopDrag);
+                  }}
+                  onClick={() => setSelectedPoint(index)}
+                />
+              ))}
+            </svg>
+          </div>
         </div>
         <div className="w-full md:w-1/2">
           <h2 className="text-xl font-semibold mb-4">Edit Point {selectedPoint + 1}</h2>
