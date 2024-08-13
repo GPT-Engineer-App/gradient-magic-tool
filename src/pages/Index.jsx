@@ -25,14 +25,16 @@ const Index = () => {
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // Create a larger gradient area
+    const gradientSize = Math.max(canvas.width, canvas.height) * 1.5;
+
     colors.forEach((color, index) => {
       const x = (positions[index].x / 100) * canvas.width;
       const y = (positions[index].y / 100) * canvas.height;
-      const radius = Math.max(canvas.width, canvas.height) / 2;
 
-      const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+      const gradient = ctx.createRadialGradient(x, y, 0, x, y, gradientSize);
       gradient.addColorStop(0, color);
-      gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      gradient.addColorStop(0.5, color + '00'); // Full transparency at the edge
 
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -42,14 +44,15 @@ const Index = () => {
   };
 
   const generateCSS = () => {
+    const gradientSize = 150; // Percentage, matching the canvas drawing
     const gradientStops = colors.map((color, index) => {
       const x = positions[index].x;
       const y = positions[index].y;
-      return `radial-gradient(circle at ${x}% ${y}%, ${color} 0%, rgba(255, 255, 255, 0) 50%)`;
+      return `radial-gradient(circle at ${x}% ${y}%, ${color} 0%, ${color}00 ${gradientSize}%)`;
     });
 
     const css = `
-background-color: #ffffff;
+background-color: ${colors[0]};
 background-image: ${gradientStops.join(', ')};
 background-size: 100% 100%;
 background-repeat: no-repeat;
