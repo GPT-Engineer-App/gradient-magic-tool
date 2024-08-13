@@ -34,9 +34,10 @@ const Index = () => {
       const svg = svgRef.current;
       if (container && svg) {
         const { width, height } = container.getBoundingClientRect();
-        svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
-        svg.style.width = `${width}px`;
-        svg.style.height = `${height}px`;
+        const size = Math.min(width, height);
+        svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
+        svg.style.width = `${size}px`;
+        svg.style.height = `${size}px`;
       }
     };
 
@@ -82,9 +83,9 @@ const Index = () => {
         </Select>
       </div>
       <div className="flex flex-col md:flex-row gap-8">
-        <div className="w-full md:w-1/2 relative" ref={containerRef}>
+        <div className="w-full md:w-1/2 relative aspect-square" ref={containerRef}>
           <GradientComponent width={meshWidth} height={meshHeight} points={points} colors={colors} controlPoints={controlPoints} />
-          <svg ref={svgRef} className="absolute top-0 left-0 w-full h-full" preserveAspectRatio="none">
+          <svg ref={svgRef} className="absolute top-0 left-0 w-full h-full" preserveAspectRatio="xMidYMid meet">
             {points.map((point, index) => (
               <circle
                 key={index}
@@ -97,11 +98,11 @@ const Index = () => {
                 style={{cursor: 'pointer'}}
                 onMouseDown={(e) => {
                   e.preventDefault();
-                  const container = containerRef.current;
-                  if (!container) return;
+                  const svg = svgRef.current;
+                  if (!svg) return;
 
                   const startDrag = (e) => {
-                    const rect = container.getBoundingClientRect();
+                    const rect = svg.getBoundingClientRect();
                     const x = (e.clientX - rect.left) / rect.width;
                     const y = (e.clientY - rect.top) / rect.height;
                     handlePointDrag(index, Math.max(0, Math.min(1, x)), Math.max(0, Math.min(1, y)));
