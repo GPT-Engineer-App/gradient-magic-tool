@@ -22,9 +22,19 @@ const fragmentShaderSource = `#version 300 es
     return t1 * t1 * t1 * p0 + 3.0 * t1 * t1 * t * p1 + 3.0 * t1 * t * t * p2 + t * t * t * p3;
   }
   
-  vec3 bezierColor(vec3 c0, vec3 c1, vec3 c2, vec3 c3, float t) {
-    float t1 = 1.0 - t;
-    return t1 * t1 * t1 * c0 + 3.0 * t1 * t1 * t * c1 + 3.0 * t1 * t * t * c2 + t * t * t * c3;
+  float sdBezier(vec2 pos, vec2 A, vec2 B, vec2 C, vec2 D) {
+    vec2 a = B - A;
+    vec2 b = C - B;
+    vec2 c = D - C;
+    vec2 d = b - a;
+    vec2 e = c - b;
+    vec2 f = d - e;
+    vec2 g = pos - A;
+    float t = clamp(dot(g, d) / dot(d, d), 0.0, 1.0);
+    vec2 h = g - d * t;
+    float y = dot(f * t, h);
+    float x = dot(e, h) + y * t;
+    return sqrt(dot(h, h) + x * x / (3.0 * dot(b, b))) * sign(x);
   }
   
   vec3 interpolateColor(vec2 p) {
@@ -39,34 +49,15 @@ const fragmentShaderSource = `#version 300 es
       
       vec2 p0 = u_points[i0];
       vec2 p3 = u_points[i1];
-      vec2 q0 = u_points[i0];
-      vec2 q3 = u_points[i2];
       vec3 c0 = u_colors[i0];
       vec3 c1 = u_colors[i1];
-      vec3 c2 = u_colors[i2];
-      vec3 c3 = u_colors[i3];
-      vec2 p1 = p0 + u_controlPoints[i0 * 4 + 3];
-      vec2 p2 = p3 - u_controlPoints[i1 * 4 + 1];
-      vec2 q1 = q0 + u_controlPoints[i0 * 4 + 2];
-      vec2 q2 = q3 - u_controlPoints[i2 * 4];
+      vec2 cp1 = p0 + u_controlPoints[i0 * 4 + 3] * 0.2;
+      vec2 cp2 = p3 - u_controlPoints[i1 * 4 + 1] * 0.2;
       
-      float t = 0.0;
-      float minDist = 1000.0;
-      for (int j = 0; j < 10; j++) {
-        float s = float(j) / 9.0;
-        vec2 bp = bezier(p0, p1, p2, p3, s);
-        vec2 bq = bezier(q0, q1, q2, q3, s);
-        float d = distance(p, bp) + distance(p, bq);
-        if (d < minDist) {
-          minDist = d;
-          t = s;
-        }
-      }
+      float dist = sdBezier(p, p0, cp1, cp2, p3);
+      float weight = 1.0 / (dist * dist + 0.001);
       
-      vec3 bc = bezierColor(c0, mix(c0, c1, 0.33), mix(c0, c2, 0.33), mix(c1, c2, 0.5), t);
-      
-      float weight = 1.0 / (minDist * minDist + 0.00001);
-      color += bc * weight;
+      color += mix(c0, c1, smoothstep(-0.5, 0.5, dist)) * weight;
       totalWeight += weight;
     }
     
@@ -155,7 +146,7 @@ const WebGLMeshGradient = ({ width, height, points, colors, controlPoints }) => 
     });
     gl.uniform3fv(colorsUniformLocation, flatColors);
 
-    const flatControlPoints = controlPoints.flatMap(cp => [cp.x, 1.0 - cp.y]); // Flip Y coordinate
+    const flatControlPoints = controlPoints.flatMap(cp => [cp.x, -cp.y]); // Flip Y coordinate
     gl.uniform2fv(controlPointsUniformLocation, flatControlPoints);
 
     gl.viewport(0, 0, canvas.width, canvas.height);
