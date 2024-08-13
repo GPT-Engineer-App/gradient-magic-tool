@@ -17,11 +17,13 @@ const fragmentShaderSource = `#version 300 es
   uniform vec3 u_colors[9];
   uniform vec2 u_controlPoints[36];
   
+  // Cubic Bezier curve calculation
   vec2 bezier(vec2 p0, vec2 p1, vec2 p2, vec2 p3, float t) {
     float t1 = 1.0 - t;
     return t1 * t1 * t1 * p0 + 3.0 * t1 * t1 * t * p1 + 3.0 * t1 * t * t * p2 + t * t * t * p3;
   }
   
+  // Signed distance to a cubic Bezier curve
   float sdBezier(vec2 pos, vec2 A, vec2 B, vec2 C, vec2 D) {
     vec2 a = B - A;
     vec2 b = C - B;
@@ -51,13 +53,18 @@ const fragmentShaderSource = `#version 300 es
       vec2 p3 = u_points[i1];
       vec3 c0 = u_colors[i0];
       vec3 c1 = u_colors[i1];
-      vec2 cp1 = p0 + u_controlPoints[i0 * 4 + 1] * 0.2;
+      
+      // Control points for the Bezier curve
+      vec2 cp1 = p0 + u_controlPoints[i0 * 4 + 1] * 0.2; // 0.2 is the control point influence factor
       vec2 cp2 = p3 - u_controlPoints[i1 * 4 + 3] * 0.2;
       
       float dist = sdBezier(p, p0, cp1, cp2, p3);
-      float weight = 1.0 / (dist * dist + 0.001);
       
-      color += mix(c0, c1, smoothstep(-0.5, 0.5, dist)) * weight;
+      // Weight calculation: inverse square distance with a small epsilon to avoid division by zero
+      float weight = 1.0 / (dist * dist + 0.0001);
+      
+      // Smooth color transition
+      color += mix(c0, c1, smoothstep(-0.05, 0.05, dist)) * weight;
       totalWeight += weight;
     }
     
