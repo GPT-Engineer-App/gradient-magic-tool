@@ -21,7 +21,8 @@ uniform vec2 u_controlPoints[36];
 uniform int u_width;
 uniform int u_height;
 
-vec2 bezierInterpolate(vec2 p0, vec2 p1, vec2 p2, vec2 p3, float t) {
+// Cubic Bezier interpolation
+vec2 cubicBezier(vec2 p0, vec2 p1, vec2 p2, vec2 p3, float t) {
     float t2 = t * t;
     float t3 = t2 * t;
     float mt = 1.0 - t;
@@ -30,7 +31,17 @@ vec2 bezierInterpolate(vec2 p0, vec2 p1, vec2 p2, vec2 p3, float t) {
     return mt3 * p0 + 3.0 * mt2 * t * p1 + 3.0 * mt * t2 * p2 + t3 * p3;
 }
 
-vec3 colorBezierInterpolate(vec3 c0, vec3 c1, vec3 c2, vec3 c3, float t) {
+// Bicubic Bezier patch interpolation
+vec2 bicubicBezier(vec2 p[16], vec2 t) {
+    vec2 temp[4];
+    for (int i = 0; i < 4; i++) {
+        temp[i] = cubicBezier(p[i*4], p[i*4+1], p[i*4+2], p[i*4+3], t.x);
+    }
+    return cubicBezier(temp[0], temp[1], temp[2], temp[3], t.y);
+}
+
+// Color interpolation
+vec3 colorInterpolation(vec3 c0, vec3 c1, vec3 c2, vec3 c3, float t) {
     float t2 = t * t;
     float t3 = t2 * t;
     float mt = 1.0 - t;
@@ -41,47 +52,64 @@ vec3 colorBezierInterpolate(vec3 c0, vec3 c1, vec3 c2, vec3 c3, float t) {
 
 void main() {
     // Determine which cell the current pixel is in
-    int i = int(v_texCoord.x * float(u_width - 1));
-    int j = int(v_texCoord.y * float(u_height - 1));
+    int i = int(v_texCoord.x * 2.0);
+    int j = int(v_texCoord.y * 2.0);
     
     // Calculate local coordinates within the cell
-    vec2 localCoord = fract(v_texCoord * vec2(float(u_width - 1), float(u_height - 1)));
+    vec2 localCoord = fract(v_texCoord * 2.0);
     
-    // Gather the 4 corner points and colors for this cell
-    vec2 p00 = u_points[j * u_width + i];
-    vec2 p10 = u_points[j * u_width + i + 1];
-    vec2 p01 = u_points[(j + 1) * u_width + i];
-    vec2 p11 = u_points[(j + 1) * u_width + i + 1];
+    // Gather the 4 corner points, colors, and control points for this cell
+    vec2 p[16];
+    vec3 colors[4];
+    int index = j * 3 + i;
     
-    vec3 c00 = u_colors[j * u_width + i];
-    vec3 c10 = u_colors[j * u_width + i + 1];
-    vec3 c01 = u_colors[(j + 1) * u_width + i];
-    vec3 c11 = u_colors[(j + 1) * u_width + i + 1];
+    p[0] = u_points[index];
+    p[3] = u_points[index + 1];
+    p[12] = u_points[index + 3];
+    p[15] = u_points[index + 4];
     
-    // Gather control points
-    vec2 cp00_10 = p00 + u_controlPoints[(j * u_width + i) * 4 + 1]; // right control point of p00
-    vec2 cp10_00 = p10 + u_controlPoints[(j * u_width + i + 1) * 4 + 3]; // left control point of p10
-    vec2 cp00_01 = p00 + u_controlPoints[(j * u_width + i) * 4 + 2]; // bottom control point of p00
-    vec2 cp01_00 = p01 + u_controlPoints[((j + 1) * u_width + i) * 4]; // top control point of p01
+    colors[0] = u_colors[index];
+    colors[1] = u_colors[index + 1];
+    colors[2] = u_colors[index + 3];
+    colors[3] = u_colors[index + 4];
     
-    // Interpolate along x-axis
-    vec2 p0 = bezierInterpolate(p00, cp00_10, cp10_00, p10, localCoord.x);
-    vec2 p1 = bezierInterpolate(p01, cp01_00, cp00_01, p11, localCoord.x);
+    // Control points
+    p[1] = p[0] + u_controlPoints[index * 4 + 1];      // right control point of p0
+    p[2] = p[3] + u_controlPoints[(index + 1) * 4 + 3]; // left control point of p3
+    p[4] = p[0] + u_controlPoints[index * 4 + 2];      // bottom control point of p0
+    p[8] = p[12] + u_controlPoints[(index + 3) * 4];   // top control point of p12
     
-    // Interpolate along y-axis
-    vec2 p = bezierInterpolate(p0, p0, p1, p1, localCoord.y);
+    p[7] = p[3] + u_controlPoints[(index + 1) * 4 + 2];  // bottom control point of p3
+    p[11] = p[15] + u_controlPoints[(index + 4) * 4 + 3]; // left control point of p15
+    p[13] = p[12] + u_controlPoints[(index + 3) * 4 + 1]; // right control point of p12
+    p[14] = p[15] + u_controlPoints[(index + 4) * 4];    // top control point of p15
     
-    // Color interpolation
-    vec3 c0 = colorBezierInterpolate(c00, mix(c00, c10, 0.33), mix(c00, c10, 0.66), c10, localCoord.x);
-    vec3 c1 = colorBezierInterpolate(c01, mix(c01, c11, 0.33), mix(c01, c11, 0.66), c11, localCoord.x);
-    vec3 c = colorBezierInterpolate(c0, mix(c0, c1, 0.33), mix(c0, c1, 0.66), c1, localCoord.y);
+    // Interior control points
+    p[5] = mix(p[4], p[7], 0.33333);
+    p[6] = mix(p[4], p[7], 0.66667);
+    p[9] = mix(p[8], p[11], 0.33333);
+    p[10] = mix(p[8], p[11], 0.66667);
     
-    fragColor = vec4(c, 1.0);
+    // Interpolate position
+    vec2 pos = bicubicBezier(p, localCoord);
+    
+    // Interpolate color
+    vec3 colorTop = colorInterpolation(colors[0], mix(colors[0], colors[1], 0.33333),
+                                       mix(colors[0], colors[1], 0.66667), colors[1], localCoord.x);
+    vec3 colorBottom = colorInterpolation(colors[2], mix(colors[2], colors[3], 0.33333),
+                                          mix(colors[2], colors[3], 0.66667), colors[3], localCoord.x);
+    vec3 finalColor = colorInterpolation(colorTop, mix(colorTop, colorBottom, 0.33333),
+                                         mix(colorTop, colorBottom, 0.66667), colorBottom, localCoord.y);
+    
+    fragColor = vec4(finalColor, 1.0);
 }
 `;
 
 const WebGLMeshGradient = ({ width, height, points, colors, controlPoints }) => {
   const canvasRef = useRef(null);
+  const glRef = useRef(null);
+  const programRef = useRef(null);
+  const uniformLocationsRef = useRef({});
 
   useEffect(() => {
     // TODO: Implement dynamic shader generation based on width and height
@@ -97,6 +125,7 @@ const WebGLMeshGradient = ({ width, height, points, colors, controlPoints }) => 
 
     const canvas = canvasRef.current;
     const gl = canvas.getContext('webgl2');
+    glRef.current = gl;
 
     if (!gl) {
       console.error('WebGL 2 not supported');
@@ -134,6 +163,8 @@ const WebGLMeshGradient = ({ width, height, points, colors, controlPoints }) => 
       return;
     }
 
+    programRef.current = program;
+
     const positionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
     const positions = [
@@ -148,16 +179,50 @@ const WebGLMeshGradient = ({ width, height, points, colors, controlPoints }) => 
     gl.enableVertexAttribArray(positionAttributeLocation);
     gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
 
-    const pointsUniformLocation = gl.getUniformLocation(program, 'u_points');
-    const colorsUniformLocation = gl.getUniformLocation(program, 'u_colors');
-    const controlPointsUniformLocation = gl.getUniformLocation(program, 'u_controlPoints');
-    const widthUniformLocation = gl.getUniformLocation(program, 'u_width');
-    const heightUniformLocation = gl.getUniformLocation(program, 'u_height');
-
     gl.useProgram(program);
 
+    // Store uniform locations
+    uniformLocationsRef.current = {
+      points: gl.getUniformLocation(program, 'u_points'),
+      colors: gl.getUniformLocation(program, 'u_colors'),
+      controlPoints: gl.getUniformLocation(program, 'u_controlPoints'),
+      width: gl.getUniformLocation(program, 'u_width'),
+      height: gl.getUniformLocation(program, 'u_height'),
+    };
+
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // Initial render
+    updateUniforms();
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    // Cleanup function
+    return () => {
+      gl.deleteProgram(program);
+      gl.deleteShader(vertexShader);
+      gl.deleteShader(fragmentShader);
+      gl.deleteBuffer(positionBuffer);
+    };
+  }, [width, height]);
+
+  useEffect(() => {
+    updateUniforms();
+    const gl = glRef.current;
+    if (gl) {
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    }
+  }, [points, colors, controlPoints]);
+
+  const updateUniforms = () => {
+    const gl = glRef.current;
+    const program = programRef.current;
+    const uniformLocations = uniformLocationsRef.current;
+    if (!gl || !program || !uniformLocations) return;
+
     const flatPoints = points.flatMap(p => [p.x, p.y]);
-    gl.uniform2fv(pointsUniformLocation, flatPoints);
+    gl.uniform2fv(uniformLocations.points, flatPoints);
 
     const flatColors = colors.flatMap(c => {
       const hex = c.replace('#', '');
@@ -167,7 +232,7 @@ const WebGLMeshGradient = ({ width, height, points, colors, controlPoints }) => 
         parseInt(hex.substr(4, 2), 16) / 255,
       ];
     });
-    gl.uniform3fv(colorsUniformLocation, flatColors);
+    gl.uniform3fv(uniformLocations.colors, flatColors);
 
     const flatControlPoints = controlPoints.flatMap(cp => [
       cp.top.x, cp.top.y,
@@ -175,17 +240,11 @@ const WebGLMeshGradient = ({ width, height, points, colors, controlPoints }) => 
       cp.bottom.x, cp.bottom.y,
       cp.left.x, cp.left.y
     ]);
-    gl.uniform2fv(controlPointsUniformLocation, flatControlPoints);
+    gl.uniform2fv(uniformLocations.controlPoints, flatControlPoints);
 
-    gl.uniform1i(widthUniformLocation, width);
-    gl.uniform1i(heightUniformLocation, height);
-
-    gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.clearColor(0, 0, 0, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-  }, [width, height, points, colors, controlPoints]);
+    gl.uniform1i(uniformLocations.width, width);
+    gl.uniform1i(uniformLocations.height, height);
+  };
 
   return (
     <canvas
