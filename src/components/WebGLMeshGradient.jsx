@@ -221,9 +221,9 @@ const WebGLMeshGradient = ({ width, height, points, colors, controlPoints }) => 
     const uniformLocations = uniformLocationsRef.current;
     if (!gl || !program || !uniformLocations) return;
 
-    // IMPORTANT: Remember to flip the Y-axis when passing point coordinates to WebGL
-    // WebGL's coordinate system has (0,0) at the bottom-left, while our UI uses top-left
-    const flatPoints = points.flatMap(p => [p.x, 1.0 - p.y]); // Flip Y-axis here
+    // IMPORTANT: WebGL's coordinate system has (0,0) at the bottom-left, while our UI uses top-left
+    // We only need to flip the Y-axis once when passing point coordinates to WebGL
+    const flatPoints = points.flatMap(p => [p.x, 1.0 - p.y]);
     gl.uniform2fv(uniformLocations.points, flatPoints);
 
     const flatColors = colors.flatMap(c => {
@@ -236,12 +236,12 @@ const WebGLMeshGradient = ({ width, height, points, colors, controlPoints }) => 
     });
     gl.uniform3fv(uniformLocations.colors, flatColors);
 
-    // IMPORTANT: Remember to flip the Y-axis for control points as well
+    // IMPORTANT: Control points are relative offsets, so we don't flip their Y-axis
     const flatControlPoints = controlPoints.flatMap(cp => [
-      cp.top.x, -cp.top.y,
-      cp.right.x, -cp.right.y,
-      cp.bottom.x, -cp.bottom.y,
-      cp.left.x, -cp.left.y
+      cp.top.x, cp.top.y,
+      cp.right.x, cp.right.y,
+      cp.bottom.x, cp.bottom.y,
+      cp.left.x, cp.left.y
     ]);
     gl.uniform2fv(uniformLocations.controlPoints, flatControlPoints);
 
