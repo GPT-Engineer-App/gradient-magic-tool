@@ -222,7 +222,7 @@ const WebGLMeshGradient = ({ width, height, points, colors, controlPoints }) => 
     if (!gl || !program || !uniformLocations) return;
 
     // IMPORTANT: WebGL's coordinate system has (0,0) at the bottom-left, while our UI uses top-left
-    // We only need to flip the Y-axis once when passing point coordinates to WebGL
+    // We need to flip the Y-axis once when passing point coordinates to WebGL
     const flatPoints = points.flatMap(p => [p.x, 1.0 - p.y]);
     gl.uniform2fv(uniformLocations.points, flatPoints);
 
