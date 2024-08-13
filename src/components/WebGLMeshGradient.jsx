@@ -1,17 +1,18 @@
 import React, { useEffect, useRef } from 'react';
 
-const vertexShaderSource = `
-  attribute vec2 a_position;
-  varying vec2 v_texCoord;
+const vertexShaderSource = `#version 300 es
+  in vec2 a_position;
+  out vec2 v_texCoord;
   void main() {
     gl_Position = vec4(a_position, 0.0, 1.0);
     v_texCoord = a_position * 0.5 + 0.5;
   }
 `;
 
-const fragmentShaderSource = `
-  precision mediump float;
-  varying vec2 v_texCoord;
+const fragmentShaderSource = `#version 300 es
+  precision highp float;
+  in vec2 v_texCoord;
+  out vec4 fragColor;
   uniform vec2 u_points[9];
   uniform vec3 u_colors[9];
   uniform vec2 u_controlPoints[36];
@@ -31,38 +32,23 @@ const fragmentShaderSource = `
     float totalWeight = 0.0;
     
     for (int i = 0; i < 4; i++) {
-      vec2 p0, p1, p2, p3, q0, q1, q2, q3;
-      vec3 c0, c1, c2, c3;
+      int i0 = i * 2;
+      int i1 = i0 + 1;
+      int i2 = (i0 + 2) % 8;
+      int i3 = (i0 + 3) % 8;
       
-      if (i == 0) {
-        p0 = u_points[0]; p3 = u_points[1]; q0 = u_points[0]; q3 = u_points[2];
-        c0 = u_colors[0]; c1 = u_colors[1]; c2 = u_colors[2]; c3 = u_colors[3];
-        p1 = p0 + u_controlPoints[3];
-        p2 = p3 - u_controlPoints[5];
-        q1 = q0 + u_controlPoints[2];
-        q2 = q3 - u_controlPoints[8];
-      } else if (i == 1) {
-        p0 = u_points[2]; p3 = u_points[3]; q0 = u_points[2]; q3 = u_points[4];
-        c0 = u_colors[2]; c1 = u_colors[3]; c2 = u_colors[4]; c3 = u_colors[5];
-        p1 = p0 + u_controlPoints[11];
-        p2 = p3 - u_controlPoints[13];
-        q1 = q0 + u_controlPoints[10];
-        q2 = q3 - u_controlPoints[16];
-      } else if (i == 2) {
-        p0 = u_points[4]; p3 = u_points[5]; q0 = u_points[4]; q3 = u_points[6];
-        c0 = u_colors[4]; c1 = u_colors[5]; c2 = u_colors[6]; c3 = u_colors[7];
-        p1 = p0 + u_controlPoints[19];
-        p2 = p3 - u_controlPoints[21];
-        q1 = q0 + u_controlPoints[18];
-        q2 = q3 - u_controlPoints[24];
-      } else {
-        p0 = u_points[6]; p3 = u_points[7]; q0 = u_points[6]; q3 = u_points[0];
-        c0 = u_colors[6]; c1 = u_colors[7]; c2 = u_colors[8]; c3 = u_colors[1];
-        p1 = p0 + u_controlPoints[27];
-        p2 = p3 - u_controlPoints[29];
-        q1 = q0 + u_controlPoints[26];
-        q2 = q3 - u_controlPoints[0];
-      }
+      vec2 p0 = u_points[i0];
+      vec2 p3 = u_points[i1];
+      vec2 q0 = u_points[i0];
+      vec2 q3 = u_points[i2];
+      vec3 c0 = u_colors[i0];
+      vec3 c1 = u_colors[i1];
+      vec3 c2 = u_colors[i2];
+      vec3 c3 = u_colors[i3];
+      vec2 p1 = p0 + u_controlPoints[i0 * 4 + 3];
+      vec2 p2 = p3 - u_controlPoints[i1 * 4 + 1];
+      vec2 q1 = q0 + u_controlPoints[i0 * 4 + 2];
+      vec2 q2 = q3 - u_controlPoints[i2 * 4];
       
       float t = 0.0;
       float minDist = 1000.0;
@@ -89,7 +75,7 @@ const fragmentShaderSource = `
   
   void main() {
     vec3 color = interpolateColor(v_texCoord);
-    gl_FragColor = vec4(color, 1.0);
+    fragColor = vec4(color, 1.0);
   }
 `;
 
@@ -98,10 +84,10 @@ const WebGLMeshGradient = ({ width, height, points, colors, controlPoints }) => 
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    const gl = canvas.getContext('webgl');
+    const gl = canvas.getContext('webgl2');
 
     if (!gl) {
-      console.error('WebGL not supported');
+      console.error('WebGL 2 not supported');
       return;
     }
 
