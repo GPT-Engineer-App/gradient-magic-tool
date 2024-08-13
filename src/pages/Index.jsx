@@ -27,9 +27,9 @@ const Index = () => {
   const [renderer, setRenderer] = useState('webgl');
   const [selectedPoint, setSelectedPoint] = useState(0);
 
-  const handlePointChange = (axis, value) => {
+  const handlePointDrag = (index, newX, newY) => {
     const newPoints = [...points];
-    newPoints[selectedPoint][axis] = parseFloat(value);
+    newPoints[index] = { x: newX, y: newY };
     setPoints(newPoints);
   };
 
@@ -66,17 +66,31 @@ const Index = () => {
       <div className="flex flex-col md:flex-row gap-8">
         <div className="w-full md:w-1/2 relative">
           <GradientComponent width={meshWidth} height={meshHeight} points={points} colors={colors} controlPoints={controlPoints} />
-          <svg className="absolute top-0 left-0 w-full h-full" viewBox="0 0 100 100" style={{pointerEvents: 'none'}}>
+          <svg className="absolute top-0 left-0 w-full h-full" viewBox="0 0 1 1" style={{pointerEvents: 'none'}}>
             {points.map((point, index) => (
               <circle
                 key={index}
-                cx={point.x * 100}
-                cy={(1 - point.y) * 100}
-                r="2"
+                cx={point.x}
+                cy={point.y}
+                r="0.02"
                 fill={colors[index]}
                 stroke="white"
-                strokeWidth="1"
+                strokeWidth="0.005"
                 style={{cursor: 'pointer', pointerEvents: 'auto'}}
+                onMouseDown={(e) => {
+                  const startDrag = (e) => {
+                    const rect = e.target.closest('svg').getBoundingClientRect();
+                    const x = (e.clientX - rect.left) / rect.width;
+                    const y = (e.clientY - rect.top) / rect.height;
+                    handlePointDrag(index, Math.max(0, Math.min(1, x)), Math.max(0, Math.min(1, y)));
+                  };
+                  const stopDrag = () => {
+                    window.removeEventListener('mousemove', startDrag);
+                    window.removeEventListener('mouseup', stopDrag);
+                  };
+                  window.addEventListener('mousemove', startDrag);
+                  window.addEventListener('mouseup', stopDrag);
+                }}
                 onClick={() => setSelectedPoint(index)}
               />
             ))}
@@ -84,32 +98,6 @@ const Index = () => {
         </div>
         <div className="w-full md:w-1/2">
           <h2 className="text-xl font-semibold mb-4">Edit Point {selectedPoint + 1}</h2>
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <Label htmlFor="x-position">X Position:</Label>
-              <Input
-                id="x-position"
-                type="number"
-                min="0"
-                max="1"
-                step="0.01"
-                value={points[selectedPoint].x}
-                onChange={(e) => handlePointChange('x', e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="y-position">Y Position:</Label>
-              <Input
-                id="y-position"
-                type="number"
-                min="0"
-                max="1"
-                step="0.01"
-                value={points[selectedPoint].y}
-                onChange={(e) => handlePointChange('y', e.target.value)}
-              />
-            </div>
-          </div>
           <div className="mb-4">
             <Label htmlFor="color">Color:</Label>
             <Input
