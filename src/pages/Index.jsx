@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import MeshGradient from '@/components/MeshGradient';
-import WebGLMeshGradient from '@/components/WebGLMeshGradient';
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import GradientRenderer from '@/components/GradientRenderer';
+import PointsOverlay from '@/components/PointsOverlay';
+import PointEditor from '@/components/PointEditor';
 
 const Index = () => {
   const [meshWidth] = useState(3);
@@ -25,19 +25,16 @@ const Index = () => {
   );
   const [renderer, setRenderer] = useState('webgl');
   const [selectedPoint, setSelectedPoint] = useState(0);
-  const svgRef = useRef(null);
   const containerRef = useRef(null);
 
   useEffect(() => {
     const updateSVGViewBox = () => {
       const container = containerRef.current;
-      const svg = svgRef.current;
-      if (container && svg) {
+      if (container) {
         const { width, height } = container.getBoundingClientRect();
         const size = Math.min(width, height);
-        svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
-        svg.style.width = `${size}px`;
-        svg.style.height = `${size}px`;
+        container.style.width = `${size}px`;
+        container.style.height = `${size}px`;
       }
     };
 
@@ -71,8 +68,6 @@ const Index = () => {
     setPoints(newPoints);
   };
 
-  const GradientComponent = renderer === 'canvas' ? MeshGradient : WebGLMeshGradient;
-
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-6">Mesh Gradient Generator</h1>
@@ -90,115 +85,32 @@ const Index = () => {
       </div>
       <div className="flex flex-col md:flex-row gap-8">
         <div className="w-full md:w-1/2 relative" ref={containerRef}>
-          <div className="aspect-square relative overflow-visible">
-            <GradientComponent width={meshWidth} height={meshHeight} points={points} colors={colors} controlPoints={controlPoints} />
-            <svg ref={svgRef} className="absolute top-0 left-0 w-full h-full overflow-visible" preserveAspectRatio="xMidYMid meet">
-              {points.map((point, index) => (
-                <circle
-                  key={index}
-                  cx={`${point.x * 100}%`}
-                  cy={`${point.y * 100}%`}
-                  r="8"
-                  fill={colors[index]}
-                  stroke="white"
-                  strokeWidth="2"
-                  style={{cursor: 'pointer'}}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    setSelectedPoint(index);
-                    const svg = svgRef.current;
-                    if (!svg) return;
-
-                    const startDrag = (e) => {
-                      const rect = svg.getBoundingClientRect();
-                      const x = (e.clientX - rect.left) / rect.width;
-                      const y = (e.clientY - rect.top) / rect.height;
-                      handlePointDrag(index, Math.max(0, Math.min(1, x)), Math.max(0, Math.min(1, y)));
-                    };
-
-                    const stopDrag = () => {
-                      window.removeEventListener('mousemove', startDrag);
-                      window.removeEventListener('mouseup', stopDrag);
-                    };
-
-                    window.addEventListener('mousemove', startDrag);
-                    window.addEventListener('mouseup', stopDrag);
-                  }}
-                />
-              ))}
-            </svg>
-          </div>
+          <GradientRenderer
+            renderer={renderer}
+            meshWidth={meshWidth}
+            meshHeight={meshHeight}
+            points={points}
+            colors={colors}
+            controlPoints={controlPoints}
+          />
+          <PointsOverlay
+            points={points}
+            colors={colors}
+            selectedPoint={selectedPoint}
+            setSelectedPoint={setSelectedPoint}
+            handlePointDrag={handlePointDrag}
+          />
         </div>
         <div className="w-full md:w-1/2">
-          <h2 className="text-xl font-semibold mb-4">Edit Point {selectedPoint + 1}</h2>
-          <div className="mb-4">
-            <Label htmlFor="color">Color:</Label>
-            <Input
-              id="color"
-              type="color"
-              value={colors[selectedPoint]}
-              onChange={(e) => handleColorChange(e.target.value)}
-              className="w-full h-10"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <Label htmlFor="point-x">X:</Label>
-              <Input
-                id="point-x"
-                type="number"
-                min="0"
-                max="1"
-                step="0.01"
-                value={points[selectedPoint].x.toFixed(2)}
-                onChange={(e) => handlePointPositionChange('x', e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="point-y">Y:</Label>
-              <Input
-                id="point-y"
-                type="number"
-                min="0"
-                max="1"
-                step="0.01"
-                value={points[selectedPoint].y.toFixed(2)}
-                onChange={(e) => handlePointPositionChange('y', e.target.value)}
-              />
-            </div>
-          </div>
-          <h3 className="text-lg font-semibold mb-2">Control Points</h3>
-          {['Leading', 'Top', 'Trailing', 'Bottom'].map((direction, cpIndex) => (
-            <div key={direction} className="mb-4">
-              <h4 className="font-medium mb-2">{direction}</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor={`cp-${direction}-x`}>X:</Label>
-                  <Input
-                    id={`cp-${direction}-x`}
-                    type="number"
-                    min="-0.5"
-                    max="0.5"
-                    step="0.01"
-                    value={controlPoints[selectedPoint * 4 + cpIndex].x.toFixed(2)}
-                    onChange={(e) => handleControlPointChange(cpIndex, 'x', e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor={`cp-${direction}-y`}>Y:</Label>
-                  <Input
-                    id={`cp-${direction}-y`}
-                    type="number"
-                    min="-0.5"
-                    max="0.5"
-                    step="0.01"
-                    value={controlPoints[selectedPoint * 4 + cpIndex].y.toFixed(2)}
-                    onChange={(e) => handleControlPointChange(cpIndex, 'y', e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
+          <PointEditor
+            selectedPoint={selectedPoint}
+            points={points}
+            colors={colors}
+            controlPoints={controlPoints}
+            handleColorChange={handleColorChange}
+            handlePointPositionChange={handlePointPositionChange}
+            handleControlPointChange={handleControlPointChange}
+          />
         </div>
       </div>
     </div>
