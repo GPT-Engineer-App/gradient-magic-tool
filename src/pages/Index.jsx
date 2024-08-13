@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -27,6 +27,23 @@ const Index = () => {
   const [selectedPoint, setSelectedPoint] = useState(0);
   const svgRef = useRef(null);
   const containerRef = useRef(null);
+
+  useEffect(() => {
+    const updateSVGViewBox = () => {
+      const container = containerRef.current;
+      const svg = svgRef.current;
+      if (container && svg) {
+        const { width, height } = container.getBoundingClientRect();
+        svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+        svg.style.width = `${width}px`;
+        svg.style.height = `${height}px`;
+      }
+    };
+
+    updateSVGViewBox();
+    window.addEventListener('resize', updateSVGViewBox);
+    return () => window.removeEventListener('resize', updateSVGViewBox);
+  }, []);
 
   const handlePointDrag = (index, newX, newY) => {
     const newPoints = [...points];
@@ -67,22 +84,21 @@ const Index = () => {
       <div className="flex flex-col md:flex-row gap-8">
         <div className="w-full md:w-1/2 relative" ref={containerRef}>
           <GradientComponent width={meshWidth} height={meshHeight} points={points} colors={colors} controlPoints={controlPoints} />
-          <svg ref={svgRef} className="absolute top-0 left-0 w-full h-full" viewBox="0 0 1 1" preserveAspectRatio="none">
+          <svg ref={svgRef} className="absolute top-0 left-0 w-full h-full" preserveAspectRatio="none">
             {points.map((point, index) => (
               <circle
                 key={index}
-                cx={point.x}
-                cy={point.y}
-                r="0.02"
+                cx={`${point.x * 100}%`}
+                cy={`${point.y * 100}%`}
+                r="8"
                 fill={colors[index]}
                 stroke="white"
-                strokeWidth="0.005"
+                strokeWidth="2"
                 style={{cursor: 'pointer'}}
                 onMouseDown={(e) => {
                   e.preventDefault();
-                  const svg = svgRef.current;
                   const container = containerRef.current;
-                  if (!svg || !container) return;
+                  if (!container) return;
 
                   const startDrag = (e) => {
                     const rect = container.getBoundingClientRect();
