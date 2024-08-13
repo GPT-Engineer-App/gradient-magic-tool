@@ -15,7 +15,6 @@ precision highp float;
 in vec2 v_texCoord;
 out vec4 fragColor;
 
-// TODO: Make these uniform arrays dynamic based on width and height
 uniform vec2 u_points[9];
 uniform vec3 u_colors[9];
 uniform vec2 u_controlPoints[36];
@@ -31,53 +30,53 @@ vec2 bezierInterpolate(vec2 p0, vec2 p1, vec2 p2, vec2 p3, float t) {
     return mt3 * p0 + 3.0 * mt2 * t * p1 + 3.0 * mt * t2 * p2 + t3 * p3;
 }
 
-vec2 bicubicInterpolate(vec2 p[16], float u, float v) {
-    vec2 temp[4];
-    for (int i = 0; i < 4; i++) {
-        temp[i] = bezierInterpolate(p[i*4], p[i*4+1], p[i*4+2], p[i*4+3], u);
-    }
-    return bezierInterpolate(temp[0], temp[1], temp[2], temp[3], v);
+vec3 colorBezierInterpolate(vec3 c0, vec3 c1, vec3 c2, vec3 c3, float t) {
+    float t2 = t * t;
+    float t3 = t2 * t;
+    float mt = 1.0 - t;
+    float mt2 = mt * mt;
+    float mt3 = mt2 * mt;
+    return mt3 * c0 + 3.0 * mt2 * t * c1 + 3.0 * mt * t2 * c2 + t3 * c3;
 }
 
 void main() {
     // Determine which cell the current pixel is in
-    int i = int(v_texCoord.x * 2.0);
-    int j = int(v_texCoord.y * 2.0);
+    int i = int(v_texCoord.x * float(u_width - 1));
+    int j = int(v_texCoord.y * float(u_height - 1));
     
     // Calculate local coordinates within the cell
-    vec2 localCoord = fract(v_texCoord * 2.0);
+    vec2 localCoord = fract(v_texCoord * vec2(float(u_width - 1), float(u_height - 1)));
     
-    // Gather the 16 control points for this cell
-    vec2 cellPoints[16];
-    for (int y = 0; y < 4; y++) {
-        for (int x = 0; x < 4; x++) {
-            int index = (j + y) * 3 + (i + x);
-            if (x == 0 && y == 0) cellPoints[y*4+x] = u_points[index];
-            else if (x == 1 && y == 0) cellPoints[y*4+x] = u_points[index] + u_controlPoints[index*4+1];
-            else if (x == 2 && y == 0) cellPoints[y*4+x] = u_points[index+1] + u_controlPoints[(index+1)*4+3];
-            else if (x == 3 && y == 0) cellPoints[y*4+x] = u_points[index+1];
-            else if (x == 0 && y == 1) cellPoints[y*4+x] = u_points[index] + u_controlPoints[index*4];
-            else if (x == 3 && y == 1) cellPoints[y*4+x] = u_points[index+1] + u_controlPoints[(index+1)*4+2];
-            else if (x == 0 && y == 2) cellPoints[y*4+x] = u_points[index+3] + u_controlPoints[(index+3)*4+1];
-            else if (x == 3 && y == 2) cellPoints[y*4+x] = u_points[index+4] + u_controlPoints[(index+4)*4+3];
-            else if (x == 0 && y == 3) cellPoints[y*4+x] = u_points[index+3];
-            else if (x == 1 && y == 3) cellPoints[y*4+x] = u_points[index+3] + u_controlPoints[(index+3)*4];
-            else if (x == 2 && y == 3) cellPoints[y*4+x] = u_points[index+4] + u_controlPoints[(index+4)*4+2];
-            else if (x == 3 && y == 3) cellPoints[y*4+x] = u_points[index+4];
-        }
-    }
+    // Gather the 4 corner points and colors for this cell
+    vec2 p00 = u_points[j * u_width + i];
+    vec2 p10 = u_points[j * u_width + i + 1];
+    vec2 p01 = u_points[(j + 1) * u_width + i];
+    vec2 p11 = u_points[(j + 1) * u_width + i + 1];
     
-    // Perform bicubic interpolation
-    vec2 interpolatedPoint = bicubicInterpolate(cellPoints, localCoord.x, localCoord.y);
+    vec3 c00 = u_colors[j * u_width + i];
+    vec3 c10 = u_colors[j * u_width + i + 1];
+    vec3 c01 = u_colors[(j + 1) * u_width + i];
+    vec3 c11 = u_colors[(j + 1) * u_width + i + 1];
     
-    // Blend colors based on the interpolated position
-    vec3 color = mix(
-        mix(u_colors[j*3+i], u_colors[j*3+i+1], interpolatedPoint.x),
-        mix(u_colors[(j+1)*3+i], u_colors[(j+1)*3+i+1], interpolatedPoint.x),
-        interpolatedPoint.y
-    );
+    // Gather control points
+    vec2 cp00_10 = p00 + u_controlPoints[(j * u_width + i) * 4 + 1]; // right control point of p00
+    vec2 cp10_00 = p10 + u_controlPoints[(j * u_width + i + 1) * 4 + 3]; // left control point of p10
+    vec2 cp00_01 = p00 + u_controlPoints[(j * u_width + i) * 4 + 2]; // bottom control point of p00
+    vec2 cp01_00 = p01 + u_controlPoints[((j + 1) * u_width + i) * 4]; // top control point of p01
     
-    fragColor = vec4(color, 1.0);
+    // Interpolate along x-axis
+    vec2 p0 = bezierInterpolate(p00, cp00_10, cp10_00, p10, localCoord.x);
+    vec2 p1 = bezierInterpolate(p01, cp01_00, cp00_01, p11, localCoord.x);
+    
+    // Interpolate along y-axis
+    vec2 p = bezierInterpolate(p0, p0, p1, p1, localCoord.y);
+    
+    // Color interpolation
+    vec3 c0 = colorBezierInterpolate(c00, mix(c00, c10, 0.33), mix(c00, c10, 0.66), c10, localCoord.x);
+    vec3 c1 = colorBezierInterpolate(c01, mix(c01, c11, 0.33), mix(c01, c11, 0.66), c11, localCoord.x);
+    vec3 c = colorBezierInterpolate(c0, mix(c0, c1, 0.33), mix(c0, c1, 0.66), c1, localCoord.y);
+    
+    fragColor = vec4(c, 1.0);
 }
 `;
 
