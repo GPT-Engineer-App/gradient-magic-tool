@@ -14,16 +14,56 @@ const fragmentShaderSource = `
   varying vec2 v_texCoord;
   uniform vec2 u_points[9];
   uniform vec3 u_colors[9];
+  uniform vec2 u_controlPoints[36];
+  
+  vec2 bezier(vec2 p0, vec2 p1, vec2 p2, vec2 p3, float t) {
+    float t1 = 1.0 - t;
+    return t1 * t1 * t1 * p0 + 3.0 * t1 * t1 * t * p1 + 3.0 * t1 * t * t * p2 + t * t * t * p3;
+  }
   
   vec3 interpolateColor(vec2 p) {
-    float totalWeight = 0.0;
     vec3 color = vec3(0.0);
+    float totalWeight = 0.0;
     
-    for (int i = 0; i < 9; i++) {
-      float d = distance(p, u_points[i]);
-      float weight = 1.0 / (d * d + 0.00001);
+    for (int i = 0; i < 4; i++) {
+      int i0 = i * 2;
+      int i1 = i0 + 1;
+      int i2 = (i0 + 2) % 8;
+      int i3 = (i0 + 3) % 8;
+      
+      vec2 p0 = u_points[i0];
+      vec2 p1 = p0 + u_controlPoints[i0 * 4 + 3];
+      vec2 p2 = u_points[i1] - u_controlPoints[i1 * 4 + 1];
+      vec2 p3 = u_points[i1];
+      
+      vec2 q0 = u_points[i0];
+      vec2 q1 = q0 + u_controlPoints[i0 * 4 + 2];
+      vec2 q2 = u_points[i2] - u_controlPoints[i2 * 4];
+      vec2 q3 = u_points[i2];
+      
+      float t = 0.0;
+      float minDist = 1000.0;
+      for (int j = 0; j < 10; j++) {
+        float s = float(j) / 9.0;
+        vec2 bp = bezier(p0, p1, p2, p3, s);
+        vec2 bq = bezier(q0, q1, q2, q3, s);
+        float d = distance(p, bp) + distance(p, bq);
+        if (d < minDist) {
+          minDist = d;
+          t = s;
+        }
+      }
+      
+      vec3 c0 = u_colors[i0];
+      vec3 c1 = u_colors[i1];
+      vec3 c2 = u_colors[i2];
+      vec3 c3 = u_colors[i3];
+      
+      vec3 bc = bezier(c0, mix(c0, c1, 0.33), mix(c0, c2, 0.33), mix(c1, c2, 0.5), t);
+      
+      float weight = 1.0 / (minDist * minDist + 0.00001);
+      color += bc * weight;
       totalWeight += weight;
-      color += weight * u_colors[i];
     }
     
     return color / totalWeight;
@@ -35,7 +75,7 @@ const fragmentShaderSource = `
   }
 `;
 
-const WebGLMeshGradient = ({ width, height, points, colors }) => {
+const WebGLMeshGradient = ({ width, height, points, colors, controlPoints }) => {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -76,10 +116,11 @@ const WebGLMeshGradient = ({ width, height, points, colors }) => {
 
     const pointsUniformLocation = gl.getUniformLocation(program, 'u_points');
     const colorsUniformLocation = gl.getUniformLocation(program, 'u_colors');
+    const controlPointsUniformLocation = gl.getUniformLocation(program, 'u_controlPoints');
 
     gl.useProgram(program);
 
-    const flatPoints = points.flatMap(p => [p.x, p.y]);
+    const flatPoints = points.flatMap(p => [p.x, 1.0 - p.y]); // Flip Y coordinate
     gl.uniform2fv(pointsUniformLocation, flatPoints);
 
     const flatColors = colors.flatMap(c => {
@@ -92,9 +133,12 @@ const WebGLMeshGradient = ({ width, height, points, colors }) => {
     });
     gl.uniform3fv(colorsUniformLocation, flatColors);
 
+    const flatControlPoints = controlPoints.flatMap(cp => [cp.x, 1.0 - cp.y]); // Flip Y coordinate
+    gl.uniform2fv(controlPointsUniformLocation, flatControlPoints);
+
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-  }, [points, colors]);
+  }, [points, colors, controlPoints]);
 
   return (
     <canvas
