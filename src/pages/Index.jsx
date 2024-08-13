@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import MeshGradient from '@/components/MeshGradient';
+import WebGLMeshGradient from '@/components/WebGLMeshGradient';
 
 const Index = () => {
   const [meshWidth] = useState(3);
@@ -17,6 +19,7 @@ const Index = () => {
     "#FFA500", "#FFFFFF", "#0000FF",
     "#FFFF00", "#008000", "#3EB489"
   ]);
+  const [renderer, setRenderer] = useState('canvas');
 
   const handlePointChange = (index, axis, value) => {
     const newPoints = [...points];
@@ -30,12 +33,26 @@ const Index = () => {
     setColors(newColors);
   };
 
+  const GradientComponent = renderer === 'canvas' ? MeshGradient : WebGLMeshGradient;
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-6">Mesh Gradient Generator</h1>
+      <div className="mb-4">
+        <Label htmlFor="renderer-select">Renderer:</Label>
+        <Select value={renderer} onValueChange={setRenderer}>
+          <SelectTrigger id="renderer-select">
+            <SelectValue placeholder="Select renderer" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="canvas">Canvas</SelectItem>
+            <SelectItem value="webgl">WebGL</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       <div className="flex flex-col md:flex-row gap-8">
         <div className="w-full md:w-1/2">
-          <MeshGradient width={meshWidth} height={meshHeight} points={points} colors={colors} />
+          <GradientComponent width={meshWidth} height={meshHeight} points={points} colors={colors} />
         </div>
         <div className="w-full md:w-1/2">
           {points.map((point, index) => (
