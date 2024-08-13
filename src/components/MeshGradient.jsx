@@ -8,7 +8,7 @@ const MeshGradient = ({ points, width = 400, height = 400 }) => {
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const gradientSize = Math.max(canvas.width, canvas.height) * 2;
+    const gradientSize = Math.max(canvas.width, canvas.height) * 1.5;
 
     points.forEach(({ x, y, color }) => {
       const gradientX = (x / 100) * canvas.width;
@@ -19,8 +19,9 @@ const MeshGradient = ({ points, width = 400, height = 400 }) => {
         gradientX, gradientY, gradientSize
       );
       gradient.addColorStop(0, color);
-      gradient.addColorStop(1, color + '00'); // Full transparency at the edge
+      gradient.addColorStop(1, 'rgba(0,0,0,0)');
 
+      ctx.globalCompositeOperation = 'lighter';
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     });
