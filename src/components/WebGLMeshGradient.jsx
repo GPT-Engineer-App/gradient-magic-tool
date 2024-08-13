@@ -55,8 +55,8 @@ const fragmentShaderSource = `#version 300 es
       vec3 c1 = u_colors[i1];
       
       // Control points for the Bezier curve
-      vec2 cp1 = p0 + u_controlPoints[i0 * 4 + 1] * 0.2; // 0.2 is the control point influence factor
-      vec2 cp2 = p3 - u_controlPoints[i1 * 4 + 3] * 0.2;
+      vec2 cp1 = p0 + u_controlPoints[i0 * 4 + 1]; // Right control point of p0
+      vec2 cp2 = p3 + u_controlPoints[i1 * 4 + 3]; // Left control point of p3
       
       float dist = sdBezier(p, p0, cp1, cp2, p3);
       
@@ -153,11 +153,12 @@ const WebGLMeshGradient = ({ width, height, points, colors, controlPoints }) => 
     });
     gl.uniform3fv(colorsUniformLocation, flatColors);
 
-    const flatControlPoints = controlPoints.flatMap(cp => [
-      cp.right.x, -cp.right.y,
-      cp.top.x, -cp.top.y,
-      cp.left.x, -cp.left.y,
-      cp.bottom.x, -cp.bottom.y
+    // Correctly flatten control points
+    const flatControlPoints = points.flatMap((_, index) => [
+      controlPoints[index].right.x, -controlPoints[index].right.y,
+      controlPoints[index].top.x, -controlPoints[index].top.y,
+      controlPoints[index].left.x, -controlPoints[index].left.y,
+      controlPoints[index].bottom.x, -controlPoints[index].bottom.y
     ]);
     gl.uniform2fv(controlPointsUniformLocation, flatControlPoints);
 
