@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import GradientRenderer from '@/components/GradientRenderer';
+import MeshGradient from '@/components/MeshGradient';
+import WebGLMeshGradient from '@/components/WebGLMeshGradient';
 import PointsOverlay from '@/components/PointsOverlay';
 import PointEditor from '@/components/PointEditor';
 
@@ -47,6 +48,7 @@ const Index = () => {
     const newPoints = [...points];
     newPoints[index] = { x: newX, y: newY };
     setPoints(newPoints);
+    setSelectedPoint(index);
   };
 
   const handleColorChange = (newColor) => {
@@ -85,21 +87,31 @@ const Index = () => {
       </div>
       <div className="flex flex-col md:flex-row gap-8">
         <div className="w-full md:w-1/2 relative" ref={containerRef}>
-          <GradientRenderer
-            renderer={renderer}
-            meshWidth={meshWidth}
-            meshHeight={meshHeight}
-            points={points}
-            colors={colors}
-            controlPoints={controlPoints}
-          />
-          <PointsOverlay
-            points={points}
-            colors={colors}
-            selectedPoint={selectedPoint}
-            setSelectedPoint={setSelectedPoint}
-            handlePointDrag={handlePointDrag}
-          />
+          <div className="aspect-square relative overflow-visible">
+            {renderer === 'canvas' ? (
+              <MeshGradient
+                width={meshWidth}
+                height={meshHeight}
+                points={points}
+                colors={colors}
+              />
+            ) : (
+              <WebGLMeshGradient
+                width={meshWidth}
+                height={meshHeight}
+                points={points}
+                colors={colors}
+                controlPoints={controlPoints}
+              />
+            )}
+            <PointsOverlay
+              points={points}
+              colors={colors}
+              selectedPoint={selectedPoint}
+              setSelectedPoint={setSelectedPoint}
+              handlePointDrag={handlePointDrag}
+            />
+          </div>
         </div>
         <div className="w-full md:w-1/2">
           <PointEditor
