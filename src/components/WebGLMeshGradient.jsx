@@ -221,7 +221,7 @@ const WebGLMeshGradient = ({ width, height, points, colors, controlPoints }) => 
     const uniformLocations = uniformLocationsRef.current;
     if (!gl || !program || !uniformLocations) return;
 
-    const flatPoints = points.flatMap(p => [p.x, p.y]);
+    const flatPoints = points.flatMap(p => [p.x, 1.0 - p.y]); // Flip Y-axis here
     gl.uniform2fv(uniformLocations.points, flatPoints);
 
     const flatColors = colors.flatMap(c => {
@@ -235,10 +235,10 @@ const WebGLMeshGradient = ({ width, height, points, colors, controlPoints }) => 
     gl.uniform3fv(uniformLocations.colors, flatColors);
 
     const flatControlPoints = controlPoints.flatMap(cp => [
-      cp.top.x, cp.top.y,
-      cp.right.x, cp.right.y,
-      cp.bottom.x, cp.bottom.y,
-      cp.left.x, cp.left.y
+      cp.top.x, -cp.top.y,
+      cp.right.x, -cp.right.y,
+      cp.bottom.x, -cp.bottom.y,
+      cp.left.x, -cp.left.y
     ]);
     gl.uniform2fv(uniformLocations.controlPoints, flatControlPoints);
 
