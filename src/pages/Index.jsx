@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
-import { toast } from "sonner"
 import MeshGradient from '@/components/MeshGradient';
 
 const Index = () => {
-  const [meshWidth, setMeshWidth] = useState(3);
-  const [meshHeight, setMeshHeight] = useState(3);
+  const [meshWidth] = useState(3);
+  const [meshHeight] = useState(3);
   const [points, setPoints] = useState([
     {x: 0, y: 0}, {x: 0.5, y: 0}, {x: 1, y: 0},
     {x: 0, y: 0.5}, {x: 0.5, y: 0.5}, {x: 1, y: 0.5},
@@ -32,26 +30,6 @@ const Index = () => {
     setColors(newColors);
   };
 
-  const generateCSS = () => {
-    // This is a simplified CSS generation. For a more accurate representation,
-    // you might need to use a more complex approach or a library.
-    const gradientStops = points.map((point, index) => 
-      `radial-gradient(circle at ${point.x * 100}% ${point.y * 100}%, ${colors[index]} 0%, ${colors[index]}00 100%)`
-    );
-
-    return `
-background-color: ${colors[0]};
-background-image: ${gradientStops.join(', ')};
-background-size: 100% 100%;
-background-repeat: no-repeat;
-    `.trim();
-  };
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(generateCSS());
-    toast.success("CSS copied to clipboard!");
-  };
-
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-6">Mesh Gradient Generator</h1>
@@ -60,9 +38,6 @@ background-repeat: no-repeat;
           <MeshGradient width={meshWidth} height={meshHeight} points={points} colors={colors} />
         </div>
         <div className="w-full md:w-1/2">
-          <div className="mb-4">
-            <Button onClick={copyToClipboard}>Copy CSS</Button>
-          </div>
           {points.map((point, index) => (
             <div key={index} className="mb-4 p-4 bg-gray-100 rounded-lg">
               <div className="flex items-center mb-2">
@@ -102,12 +77,6 @@ background-repeat: no-repeat;
             </div>
           ))}
         </div>
-      </div>
-      <div className="mt-8">
-        <h2 className="text-2xl font-semibold mb-2">Generated CSS</h2>
-        <pre className="bg-gray-100 p-4 rounded-lg overflow-x-auto">
-          <code>{generateCSS()}</code>
-        </pre>
       </div>
     </div>
   );
