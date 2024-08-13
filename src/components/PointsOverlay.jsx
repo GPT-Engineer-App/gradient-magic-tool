@@ -4,6 +4,10 @@ const PointsOverlay = ({ points, colors, selectedPoint, setSelectedPoint, handle
   const getControlPointPosition = (pointIndex, cpIndex) => {
     const point = points[pointIndex];
     const cp = controlPoints[pointIndex * 4 + cpIndex];
+    if (!point || !cp) {
+      console.error(`Invalid control point: pointIndex=${pointIndex}, cpIndex=${cpIndex}`);
+      return { x: 0, y: 0 };
+    }
     return {
       x: point.x + cp.x,
       y: point.y + cp.y
@@ -44,7 +48,7 @@ const PointsOverlay = ({ points, colors, selectedPoint, setSelectedPoint, handle
               window.addEventListener('mouseup', stopDrag);
             }}
           />
-          {index === selectedPoint && (
+          {index === selectedPoint && controlPoints.length >= (index + 1) * 4 && (
             <>
               {[0, 1, 2, 3].map((cpIndex) => {
                 const cp = getControlPointPosition(index, cpIndex);
