@@ -20,9 +20,12 @@ const Index = () => {
     "#FFFF00", "#008000", "#3EB489"
   ]);
   const [controlPoints, setControlPoints] = useState(
-    points.flatMap(() => [
-      {x: 0.1, y: 0}, {x: 0, y: 0.1}, {x: -0.1, y: 0}, {x: 0, y: -0.1}
-    ])
+    points.map(() => ({
+      top: {x: 0, y: -0.1},
+      right: {x: 0.1, y: 0},
+      bottom: {x: 0, y: 0.1},
+      left: {x: -0.1, y: 0}
+    }))
   );
   const [renderer, setRenderer] = useState('webgl');
   const [selectedPoint, setSelectedPoint] = useState(0);
@@ -51,10 +54,9 @@ const Index = () => {
     setSelectedPoint(index);
   };
 
-  const handleControlPointDrag = (pointIndex, cpIndex, newX, newY) => {
+  const handleControlPointDrag = (pointIndex, direction, newX, newY) => {
     const newControlPoints = [...controlPoints];
-    const index = pointIndex * 4 + cpIndex;
-    newControlPoints[index] = { x: newX, y: newY };
+    newControlPoints[pointIndex][direction] = { x: newX, y: newY };
     setControlPoints(newControlPoints);
   };
 
@@ -64,10 +66,9 @@ const Index = () => {
     setColors(newColors);
   };
 
-  const handleControlPointChange = (cpIndex, axis, value) => {
+  const handleControlPointChange = (direction, axis, value) => {
     const newControlPoints = [...controlPoints];
-    const index = selectedPoint * 4 + cpIndex;
-    newControlPoints[index][axis] = parseFloat(value);
+    newControlPoints[selectedPoint][direction][axis] = parseFloat(value);
     setControlPoints(newControlPoints);
   };
 

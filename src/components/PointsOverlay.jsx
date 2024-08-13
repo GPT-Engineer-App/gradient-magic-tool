@@ -1,11 +1,11 @@
 import React from 'react';
 
 const PointsOverlay = ({ points, colors, selectedPoint, setSelectedPoint, handlePointDrag, controlPoints, handleControlPointDrag }) => {
-  const getControlPointPosition = (pointIndex, cpIndex) => {
+  const getControlPointPosition = (pointIndex, direction) => {
     const point = points[pointIndex];
-    const cp = controlPoints[pointIndex * 4 + cpIndex];
+    const cp = controlPoints[pointIndex] ? controlPoints[pointIndex][direction] : { x: 0, y: 0 };
     if (!point || !cp) {
-      console.error(`Invalid control point: pointIndex=${pointIndex}, cpIndex=${cpIndex}`);
+      console.error(`Invalid control point: pointIndex=${pointIndex}, direction=${direction}`);
       return { x: 0, y: 0 };
     }
     return {
@@ -48,17 +48,12 @@ const PointsOverlay = ({ points, colors, selectedPoint, setSelectedPoint, handle
               window.addEventListener('mouseup', stopDrag);
             }}
           />
-          {index === selectedPoint && controlPoints.length >= (index + 1) * 4 && (
+          {index === selectedPoint && controlPoints[index] && (
             <>
-              {[
-                { index: 3, label: 'Top' },
-                { index: 1, label: 'Trailing' },
-                { index: 2, label: 'Leading' },
-                { index: 0, label: 'Bottom' }
-              ].map(({ index: cpIndex, label }) => {
-                const cp = getControlPointPosition(index, cpIndex);
+              {['top', 'right', 'bottom', 'left'].map((direction) => {
+                const cp = getControlPointPosition(index, direction);
                 return (
-                  <React.Fragment key={cpIndex}>
+                  <React.Fragment key={direction}>
                     <line
                       x1={`${point.x * 100}%`}
                       y1={`${point.y * 100}%`}
@@ -82,7 +77,7 @@ const PointsOverlay = ({ points, colors, selectedPoint, setSelectedPoint, handle
                           const rect = svg.getBoundingClientRect();
                           const x = (e.clientX - rect.left) / rect.width - point.x;
                           const y = (e.clientY - rect.top) / rect.height - point.y;
-                          handleControlPointDrag(index, cpIndex, x, y);
+                          handleControlPointDrag(index, direction, x, y);
                         };
 
                         const stopDrag = () => {
@@ -102,7 +97,7 @@ const PointsOverlay = ({ points, colors, selectedPoint, setSelectedPoint, handle
                       fontSize="10"
                       fill="white"
                     >
-                      {label}
+                      {direction.charAt(0).toUpperCase() + direction.slice(1)}
                     </text>
                   </React.Fragment>
                 );

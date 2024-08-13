@@ -49,8 +49,8 @@ const PointEditor = ({ selectedPoint, points, colors, controlPoints, handleColor
       </p>
       <div className="relative w-32 h-32 mx-auto mb-4 border border-gray-300">
         <div className="absolute top-1/2 left-1/2 w-2 h-2 bg-black transform -translate-x-1/2 -translate-y-1/2"></div>
-        {['Leading', 'Top', 'Trailing', 'Bottom'].map((direction, cpIndex) => {
-          const cp = controlPoints[selectedPoint * 4 + cpIndex];
+        {['top', 'right', 'bottom', 'left'].map((direction) => {
+          const cp = controlPoints[selectedPoint][direction];
           const x = 50 + cp.x * 100;
           const y = 50 - cp.y * 100;
           return (
@@ -62,9 +62,9 @@ const PointEditor = ({ selectedPoint, points, colors, controlPoints, handleColor
           );
         })}
       </div>
-      {['Leading', 'Top', 'Trailing', 'Bottom'].map((direction, cpIndex) => (
+      {['top', 'right', 'bottom', 'left'].map((direction) => (
         <div key={direction} className="mb-4">
-          <h4 className="font-medium mb-2">{direction}</h4>
+          <h4 className="font-medium mb-2">{direction.charAt(0).toUpperCase() + direction.slice(1)}</h4>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor={`cp-${direction}-x`}>X:</Label>
@@ -74,8 +74,8 @@ const PointEditor = ({ selectedPoint, points, colors, controlPoints, handleColor
                 min="-0.5"
                 max="0.5"
                 step="0.01"
-                value={controlPoints[selectedPoint * 4 + cpIndex].x.toFixed(2)}
-                onChange={(e) => handleControlPointChange(cpIndex, 'x', e.target.value)}
+                value={controlPoints[selectedPoint][direction].x.toFixed(2)}
+                onChange={(e) => handleControlPointChange(direction, 'x', e.target.value)}
               />
             </div>
             <div>
@@ -86,8 +86,8 @@ const PointEditor = ({ selectedPoint, points, colors, controlPoints, handleColor
                 min="-0.5"
                 max="0.5"
                 step="0.01"
-                value={controlPoints[selectedPoint * 4 + cpIndex].y.toFixed(2)}
-                onChange={(e) => handleControlPointChange(cpIndex, 'y', e.target.value)}
+                value={controlPoints[selectedPoint][direction].y.toFixed(2)}
+                onChange={(e) => handleControlPointChange(direction, 'y', e.target.value)}
               />
             </div>
           </div>

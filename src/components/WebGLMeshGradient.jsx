@@ -51,8 +51,8 @@ const fragmentShaderSource = `#version 300 es
       vec2 p3 = u_points[i1];
       vec3 c0 = u_colors[i0];
       vec3 c1 = u_colors[i1];
-      vec2 cp1 = p0 + u_controlPoints[i0 * 4 + 3] * 0.2;
-      vec2 cp2 = p3 - u_controlPoints[i1 * 4 + 1] * 0.2;
+      vec2 cp1 = p0 + u_controlPoints[i0 * 4 + 1] * 0.2;
+      vec2 cp2 = p3 - u_controlPoints[i1 * 4 + 3] * 0.2;
       
       float dist = sdBezier(p, p0, cp1, cp2, p3);
       float weight = 1.0 / (dist * dist + 0.001);
@@ -146,7 +146,12 @@ const WebGLMeshGradient = ({ width, height, points, colors, controlPoints }) => 
     });
     gl.uniform3fv(colorsUniformLocation, flatColors);
 
-    const flatControlPoints = controlPoints.flatMap(cp => [cp.x, -cp.y]); // Flip Y coordinate
+    const flatControlPoints = controlPoints.flatMap(cp => [
+      cp.right.x, -cp.right.y,
+      cp.top.x, -cp.top.y,
+      cp.left.x, -cp.left.y,
+      cp.bottom.x, -cp.bottom.y
+    ]);
     gl.uniform2fv(controlPointsUniformLocation, flatControlPoints);
 
     gl.viewport(0, 0, canvas.width, canvas.height);
