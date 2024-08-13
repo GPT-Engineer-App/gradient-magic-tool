@@ -15,9 +15,10 @@ precision highp float;
 in vec2 v_texCoord;
 out vec4 fragColor;
 
-uniform vec2 u_points[];
-uniform vec3 u_colors[];
-uniform vec2 u_controlPoints[];
+// TODO: Make these uniform arrays dynamic based on width and height
+uniform vec2 u_points[9];
+uniform vec3 u_colors[9];
+uniform vec2 u_controlPoints[36];
 uniform int u_width;
 uniform int u_height;
 
@@ -40,31 +41,29 @@ vec2 bicubicInterpolate(vec2 p[16], float u, float v) {
 
 void main() {
     // Determine which cell the current pixel is in
-    float cellWidth = 1.0 / float(u_width - 1);
-    float cellHeight = 1.0 / float(u_height - 1);
-    int i = int(v_texCoord.x / cellWidth);
-    int j = int(v_texCoord.y / cellHeight);
+    int i = int(v_texCoord.x * 2.0);
+    int j = int(v_texCoord.y * 2.0);
     
     // Calculate local coordinates within the cell
-    vec2 localCoord = (v_texCoord - vec2(float(i) * cellWidth, float(j) * cellHeight)) / vec2(cellWidth, cellHeight);
+    vec2 localCoord = fract(v_texCoord * 2.0);
     
     // Gather the 16 control points for this cell
     vec2 cellPoints[16];
     for (int y = 0; y < 4; y++) {
         for (int x = 0; x < 4; x++) {
-            int index = (j + y) * u_width + (i + x);
+            int index = (j + y) * 3 + (i + x);
             if (x == 0 && y == 0) cellPoints[y*4+x] = u_points[index];
             else if (x == 1 && y == 0) cellPoints[y*4+x] = u_points[index] + u_controlPoints[index*4+1];
             else if (x == 2 && y == 0) cellPoints[y*4+x] = u_points[index+1] + u_controlPoints[(index+1)*4+3];
             else if (x == 3 && y == 0) cellPoints[y*4+x] = u_points[index+1];
             else if (x == 0 && y == 1) cellPoints[y*4+x] = u_points[index] + u_controlPoints[index*4];
             else if (x == 3 && y == 1) cellPoints[y*4+x] = u_points[index+1] + u_controlPoints[(index+1)*4+2];
-            else if (x == 0 && y == 2) cellPoints[y*4+x] = u_points[index+u_width] + u_controlPoints[(index+u_width)*4+1];
-            else if (x == 3 && y == 2) cellPoints[y*4+x] = u_points[index+u_width+1] + u_controlPoints[(index+u_width+1)*4+3];
-            else if (x == 0 && y == 3) cellPoints[y*4+x] = u_points[index+u_width];
-            else if (x == 1 && y == 3) cellPoints[y*4+x] = u_points[index+u_width] + u_controlPoints[(index+u_width)*4];
-            else if (x == 2 && y == 3) cellPoints[y*4+x] = u_points[index+u_width+1] + u_controlPoints[(index+u_width+1)*4+2];
-            else if (x == 3 && y == 3) cellPoints[y*4+x] = u_points[index+u_width+1];
+            else if (x == 0 && y == 2) cellPoints[y*4+x] = u_points[index+3] + u_controlPoints[(index+3)*4+1];
+            else if (x == 3 && y == 2) cellPoints[y*4+x] = u_points[index+4] + u_controlPoints[(index+4)*4+3];
+            else if (x == 0 && y == 3) cellPoints[y*4+x] = u_points[index+3];
+            else if (x == 1 && y == 3) cellPoints[y*4+x] = u_points[index+3] + u_controlPoints[(index+3)*4];
+            else if (x == 2 && y == 3) cellPoints[y*4+x] = u_points[index+4] + u_controlPoints[(index+4)*4+2];
+            else if (x == 3 && y == 3) cellPoints[y*4+x] = u_points[index+4];
         }
     }
     
@@ -73,8 +72,8 @@ void main() {
     
     // Blend colors based on the interpolated position
     vec3 color = mix(
-        mix(u_colors[j*u_width+i], u_colors[j*u_width+i+1], interpolatedPoint.x),
-        mix(u_colors[(j+1)*u_width+i], u_colors[(j+1)*u_width+i+1], interpolatedPoint.x),
+        mix(u_colors[j*3+i], u_colors[j*3+i+1], interpolatedPoint.x),
+        mix(u_colors[(j+1)*3+i], u_colors[(j+1)*3+i+1], interpolatedPoint.x),
         interpolatedPoint.y
     );
     
@@ -86,6 +85,17 @@ const WebGLMeshGradient = ({ width, height, points, colors, controlPoints }) => 
   const canvasRef = useRef(null);
 
   useEffect(() => {
+    // TODO: Implement dynamic shader generation based on width and height
+    if (width !== 3 || height !== 3) {
+      console.error('Currently only 3x3 grids are supported');
+      return;
+    }
+
+    if (points.length !== 9 || colors.length !== 9 || controlPoints.length !== 9) {
+      console.error('Incorrect number of points, colors, or control points');
+      return;
+    }
+
     const canvas = canvasRef.current;
     const gl = canvas.getContext('webgl2');
 
@@ -160,11 +170,11 @@ const WebGLMeshGradient = ({ width, height, points, colors, controlPoints }) => 
     });
     gl.uniform3fv(colorsUniformLocation, flatColors);
 
-    const flatControlPoints = points.flatMap((_, index) => [
-      controlPoints[index].top.x, controlPoints[index].top.y,
-      controlPoints[index].right.x, controlPoints[index].right.y,
-      controlPoints[index].bottom.x, controlPoints[index].bottom.y,
-      controlPoints[index].left.x, controlPoints[index].left.y
+    const flatControlPoints = controlPoints.flatMap(cp => [
+      cp.top.x, cp.top.y,
+      cp.right.x, cp.right.y,
+      cp.bottom.x, cp.bottom.y,
+      cp.left.x, cp.left.y
     ]);
     gl.uniform2fv(controlPointsUniformLocation, flatControlPoints);
 
