@@ -1,37 +1,18 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useReducer } from 'react';
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import MeshGradient from '@/components/MeshGradient';
 import WebGLMeshGradient from '@/components/WebGLMeshGradient';
 import PointsOverlay from '@/components/PointsOverlay';
 import PointEditor from '@/components/PointEditor';
+import { createInitialState, meshReducer } from '../reducers/meshReducer';
 
 const Index = () => {
-  const [meshWidth] = useState(3);
-  const [meshHeight] = useState(3);
-  const [points, setPoints] = useState([
-    {x: 0, y: 0}, {x: 0.5, y: 0}, {x: 1, y: 0},
-    {x: 0, y: 0.5}, {x: 0.5, y: 0.5}, {x: 1, y: 0.5},
-    {x: 0, y: 1}, {x: 0.5, y: 1}, {x: 1, y: 1}
-  ]);
-  const [colors, setColors] = useState([
-    "#ff0000", "#800080", "#4B0082",
-    "#FFA500", "#FFFFFF", "#0000FF",
-    "#FFFF00", "#008000", "#3EB489"
-  ]);
-  const [controlPoints, setControlPoints] = useState(
-    points.map(() => ({
-      top: {x: 0, y: -0.1},
-      right: {x: 0.1, y: 0},
-      bottom: {x: 0, y: 0.1},
-      left: {x: -0.1, y: 0}
-    }))
-  );
-  const [renderer, setRenderer] = useState('webgl');
-  const [selectedPoint, setSelectedPoint] = useState(0);
-  const containerRef = useRef(null);
+  const [meshState, dispatch] = useReducer(meshReducer, 3, createInitialState);
+  const [renderer, setRenderer] = React.useState('webgl');
+  const [selectedPoint, setSelectedPoint] = React.useState(0);
+  const containerRef = React.useRef(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const updateSVGViewBox = () => {
       const container = containerRef.current;
       if (container) {
@@ -48,34 +29,37 @@ const Index = () => {
   }, []);
 
   const handlePointDrag = (index, newX, newY) => {
-    const newPoints = [...points];
-    newPoints[index] = { x: newX, y: newY };
-    setPoints(newPoints);
+    dispatch({ type: 'MOVE_POINT', index, x: newX, y: newY });
     setSelectedPoint(index);
   };
 
   const handleControlPointDrag = (pointIndex, direction, newX, newY) => {
-    const newControlPoints = [...controlPoints];
-    newControlPoints[pointIndex][direction] = { x: newX, y: newY };
-    setControlPoints(newControlPoints);
+    dispatch({ type: 'UPDATE_CONTROL_POINT', pointIndex, direction, x: newX, y: newY });
   };
 
   const handleColorChange = (newColor) => {
-    const newColors = [...colors];
-    newColors[selectedPoint] = newColor;
-    setColors(newColors);
+    dispatch({ type: 'SET_COLOR', index: selectedPoint, color: newColor });
   };
 
   const handleControlPointChange = (direction, axis, value) => {
-    const newControlPoints = [...controlPoints];
-    newControlPoints[selectedPoint][direction][axis] = parseFloat(value);
-    setControlPoints(newControlPoints);
+    const currentControlPoint = meshState.controlPoints[selectedPoint][direction];
+    dispatch({
+      type: 'UPDATE_CONTROL_POINT',
+      pointIndex: selectedPoint,
+      direction,
+      x: axis === 'x' ? parseFloat(value) : currentControlPoint.x,
+      y: axis === 'y' ? parseFloat(value) : currentControlPoint.y
+    });
   };
 
   const handlePointPositionChange = (axis, value) => {
-    const newPoints = [...points];
-    newPoints[selectedPoint][axis] = parseFloat(value);
-    setPoints(newPoints);
+    const currentPoint = meshState.points[selectedPoint];
+    dispatch({
+      type: 'MOVE_POINT',
+      index: selectedPoint,
+      x: axis === 'x' ? parseFloat(value) : currentPoint.x,
+      y: axis === 'y' ? parseFloat(value) : currentPoint.y
+    });
   };
 
   return (
@@ -96,29 +80,20 @@ const Index = () => {
       <div className="flex flex-col md:flex-row gap-8">
         <div className="w-full md:w-1/2 relative" ref={containerRef}>
           <div className="aspect-square relative overflow-visible">
-            {renderer === 'canvas' ? (
-              <MeshGradient
-                width={meshWidth}
-                height={meshHeight}
-                points={points}
-                colors={colors}
-              />
-            ) : (
-              <WebGLMeshGradient
-                width={meshWidth}
-                height={meshHeight}
-                points={points}
-                colors={colors}
-                controlPoints={controlPoints}
-              />
-            )}
+            <WebGLMeshGradient
+              width={meshState.width}
+              height={meshState.height}
+              points={meshState.points}
+              colors={meshState.colors}
+              controlPoints={meshState.controlPoints}
+            />
             <PointsOverlay
-              points={points}
-              colors={colors}
+              points={meshState.points}
+              colors={meshState.colors}
               selectedPoint={selectedPoint}
               setSelectedPoint={setSelectedPoint}
               handlePointDrag={handlePointDrag}
-              controlPoints={controlPoints}
+              controlPoints={meshState.controlPoints}
               handleControlPointDrag={handleControlPointDrag}
             />
           </div>
@@ -126,9 +101,9 @@ const Index = () => {
         <div className="w-full md:w-1/2">
           <PointEditor
             selectedPoint={selectedPoint}
-            points={points}
-            colors={colors}
-            controlPoints={controlPoints}
+            points={meshState.points}
+            colors={meshState.colors}
+            controlPoints={meshState.controlPoints}
             handleColorChange={handleColorChange}
             handlePointPositionChange={handlePointPositionChange}
             handleControlPointChange={handleControlPointChange}
