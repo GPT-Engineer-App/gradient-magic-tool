@@ -21,6 +21,11 @@ const fragmentShaderSource = `
     return t1 * t1 * t1 * p0 + 3.0 * t1 * t1 * t * p1 + 3.0 * t1 * t * t * p2 + t * t * t * p3;
   }
   
+  vec3 bezierColor(vec3 c0, vec3 c1, vec3 c2, vec3 c3, float t) {
+    float t1 = 1.0 - t;
+    return t1 * t1 * t1 * c0 + 3.0 * t1 * t1 * t * c1 + 3.0 * t1 * t * t * c2 + t * t * t * c3;
+  }
+  
   vec3 interpolateColor(vec2 p) {
     vec3 color = vec3(0.0);
     float totalWeight = 0.0;
@@ -28,8 +33,8 @@ const fragmentShaderSource = `
     for (int i = 0; i < 4; i++) {
       int i0 = i * 2;
       int i1 = i0 + 1;
-      int i2 = (i0 + 2) % 8;
-      int i3 = (i0 + 3) % 8;
+      int i2 = (i0 + 2 < 8) ? (i0 + 2) : (i0 + 2 - 8);
+      int i3 = (i0 + 3 < 8) ? (i0 + 3) : (i0 + 3 - 8);
       
       vec2 p0 = u_points[i0];
       vec2 p1 = p0 + u_controlPoints[i0 * 4 + 3];
@@ -59,7 +64,7 @@ const fragmentShaderSource = `
       vec3 c2 = u_colors[i2];
       vec3 c3 = u_colors[i3];
       
-      vec3 bc = bezier(c0, mix(c0, c1, 0.33), mix(c0, c2, 0.33), mix(c1, c2, 0.5), t);
+      vec3 bc = bezierColor(c0, mix(c0, c1, 0.33), mix(c0, c2, 0.33), mix(c1, c2, 0.5), t);
       
       float weight = 1.0 / (minDist * minDist + 0.00001);
       color += bc * weight;
