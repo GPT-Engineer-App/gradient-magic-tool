@@ -141,29 +141,31 @@ const Index = () => {
               className="w-full h-10"
             />
           </div>
-          <div className="mb-4">
-            <Label htmlFor="point-x">X:</Label>
-            <Input
-              id="point-x"
-              type="number"
-              min="0"
-              max="1"
-              step="0.01"
-              value={points[selectedPoint].x.toFixed(2)}
-              onChange={(e) => handlePointPositionChange('x', e.target.value)}
-            />
-          </div>
-          <div className="mb-4">
-            <Label htmlFor="point-y">Y:</Label>
-            <Input
-              id="point-y"
-              type="number"
-              min="0"
-              max="1"
-              step="0.01"
-              value={points[selectedPoint].y.toFixed(2)}
-              onChange={(e) => handlePointPositionChange('y', e.target.value)}
-            />
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <Label htmlFor="point-x">X:</Label>
+              <Input
+                id="point-x"
+                type="number"
+                min="0"
+                max="1"
+                step="0.01"
+                value={points[selectedPoint].x.toFixed(2)}
+                onChange={(e) => handlePointPositionChange('x', e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="point-y">Y:</Label>
+              <Input
+                id="point-y"
+                type="number"
+                min="0"
+                max="1"
+                step="0.01"
+                value={points[selectedPoint].y.toFixed(2)}
+                onChange={(e) => handlePointPositionChange('y', e.target.value)}
+              />
+            </div>
           </div>
           <h3 className="text-lg font-semibold mb-2">Control Points</h3>
           {['Leading', 'Top', 'Trailing', 'Bottom'].map((direction, cpIndex) => (
