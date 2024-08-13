@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -26,6 +26,7 @@ const Index = () => {
   );
   const [renderer, setRenderer] = useState('webgl');
   const [selectedPoint, setSelectedPoint] = useState(0);
+  const svgRef = useRef(null);
 
   const handlePointDrag = (index, newX, newY) => {
     const newPoints = [...points];
@@ -66,7 +67,7 @@ const Index = () => {
       <div className="flex flex-col md:flex-row gap-8">
         <div className="w-full md:w-1/2 relative">
           <GradientComponent width={meshWidth} height={meshHeight} points={points} colors={colors} controlPoints={controlPoints} />
-          <svg className="absolute top-0 left-0 w-full h-full" viewBox="0 0 1 1" style={{pointerEvents: 'none'}}>
+          <svg ref={svgRef} className="absolute top-0 left-0 w-full h-full" viewBox="0 0 1 1" style={{pointerEvents: 'none'}}>
             {points.map((point, index) => (
               <circle
                 key={index}
@@ -78,16 +79,22 @@ const Index = () => {
                 strokeWidth="0.005"
                 style={{cursor: 'pointer', pointerEvents: 'auto'}}
                 onMouseDown={(e) => {
+                  e.preventDefault();
+                  const svg = svgRef.current;
+                  if (!svg) return;
+
                   const startDrag = (e) => {
-                    const rect = e.target.closest('svg').getBoundingClientRect();
+                    const rect = svg.getBoundingClientRect();
                     const x = (e.clientX - rect.left) / rect.width;
                     const y = (e.clientY - rect.top) / rect.height;
                     handlePointDrag(index, Math.max(0, Math.min(1, x)), Math.max(0, Math.min(1, y)));
                   };
+
                   const stopDrag = () => {
                     window.removeEventListener('mousemove', startDrag);
                     window.removeEventListener('mouseup', stopDrag);
                   };
+
                   window.addEventListener('mousemove', startDrag);
                   window.addEventListener('mouseup', stopDrag);
                 }}
