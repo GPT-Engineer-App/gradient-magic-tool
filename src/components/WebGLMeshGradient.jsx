@@ -31,20 +31,38 @@ const fragmentShaderSource = `
     float totalWeight = 0.0;
     
     for (int i = 0; i < 4; i++) {
-      int i0 = i * 2;
-      int i1 = i0 + 1;
-      int i2 = (i0 + 2 < 8) ? (i0 + 2) : (i0 + 2 - 8);
-      int i3 = (i0 + 3 < 8) ? (i0 + 3) : (i0 + 3 - 8);
+      vec2 p0, p1, p2, p3, q0, q1, q2, q3;
+      vec3 c0, c1, c2, c3;
       
-      vec2 p0 = u_points[i0];
-      vec2 p1 = p0 + u_controlPoints[i0 * 4 + 3];
-      vec2 p2 = u_points[i1] - u_controlPoints[i1 * 4 + 1];
-      vec2 p3 = u_points[i1];
-      
-      vec2 q0 = u_points[i0];
-      vec2 q1 = q0 + u_controlPoints[i0 * 4 + 2];
-      vec2 q2 = u_points[i2] - u_controlPoints[i2 * 4];
-      vec2 q3 = u_points[i2];
+      if (i == 0) {
+        p0 = u_points[0]; p3 = u_points[1]; q0 = u_points[0]; q3 = u_points[2];
+        c0 = u_colors[0]; c1 = u_colors[1]; c2 = u_colors[2]; c3 = u_colors[3];
+        p1 = p0 + u_controlPoints[3];
+        p2 = p3 - u_controlPoints[5];
+        q1 = q0 + u_controlPoints[2];
+        q2 = q3 - u_controlPoints[8];
+      } else if (i == 1) {
+        p0 = u_points[2]; p3 = u_points[3]; q0 = u_points[2]; q3 = u_points[4];
+        c0 = u_colors[2]; c1 = u_colors[3]; c2 = u_colors[4]; c3 = u_colors[5];
+        p1 = p0 + u_controlPoints[11];
+        p2 = p3 - u_controlPoints[13];
+        q1 = q0 + u_controlPoints[10];
+        q2 = q3 - u_controlPoints[16];
+      } else if (i == 2) {
+        p0 = u_points[4]; p3 = u_points[5]; q0 = u_points[4]; q3 = u_points[6];
+        c0 = u_colors[4]; c1 = u_colors[5]; c2 = u_colors[6]; c3 = u_colors[7];
+        p1 = p0 + u_controlPoints[19];
+        p2 = p3 - u_controlPoints[21];
+        q1 = q0 + u_controlPoints[18];
+        q2 = q3 - u_controlPoints[24];
+      } else {
+        p0 = u_points[6]; p3 = u_points[7]; q0 = u_points[6]; q3 = u_points[0];
+        c0 = u_colors[6]; c1 = u_colors[7]; c2 = u_colors[8]; c3 = u_colors[1];
+        p1 = p0 + u_controlPoints[27];
+        p2 = p3 - u_controlPoints[29];
+        q1 = q0 + u_controlPoints[26];
+        q2 = q3 - u_controlPoints[0];
+      }
       
       float t = 0.0;
       float minDist = 1000.0;
@@ -58,11 +76,6 @@ const fragmentShaderSource = `
           t = s;
         }
       }
-      
-      vec3 c0 = u_colors[i0];
-      vec3 c1 = u_colors[i1];
-      vec3 c2 = u_colors[i2];
-      vec3 c3 = u_colors[i3];
       
       vec3 bc = bezierColor(c0, mix(c0, c1, 0.33), mix(c0, c2, 0.33), mix(c1, c2, 0.5), t);
       
