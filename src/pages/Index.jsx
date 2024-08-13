@@ -65,6 +65,12 @@ const Index = () => {
     setControlPoints(newControlPoints);
   };
 
+  const handlePointPositionChange = (axis, value) => {
+    const newPoints = [...points];
+    newPoints[selectedPoint][axis] = parseFloat(value);
+    setPoints(newPoints);
+  };
+
   const GradientComponent = renderer === 'canvas' ? MeshGradient : WebGLMeshGradient;
 
   return (
@@ -99,6 +105,7 @@ const Index = () => {
                   style={{cursor: 'pointer'}}
                   onMouseDown={(e) => {
                     e.preventDefault();
+                    setSelectedPoint(index);
                     const svg = svgRef.current;
                     if (!svg) return;
 
@@ -117,7 +124,6 @@ const Index = () => {
                     window.addEventListener('mousemove', startDrag);
                     window.addEventListener('mouseup', stopDrag);
                   }}
-                  onClick={() => setSelectedPoint(index)}
                 />
               ))}
             </svg>
@@ -135,6 +141,30 @@ const Index = () => {
               className="w-full h-10"
             />
           </div>
+          <div className="mb-4">
+            <Label htmlFor="point-x">X:</Label>
+            <Input
+              id="point-x"
+              type="number"
+              min="0"
+              max="1"
+              step="0.01"
+              value={points[selectedPoint].x.toFixed(2)}
+              onChange={(e) => handlePointPositionChange('x', e.target.value)}
+            />
+          </div>
+          <div className="mb-4">
+            <Label htmlFor="point-y">Y:</Label>
+            <Input
+              id="point-y"
+              type="number"
+              min="0"
+              max="1"
+              step="0.01"
+              value={points[selectedPoint].y.toFixed(2)}
+              onChange={(e) => handlePointPositionChange('y', e.target.value)}
+            />
+          </div>
           <h3 className="text-lg font-semibold mb-2">Control Points</h3>
           {['Leading', 'Top', 'Trailing', 'Bottom'].map((direction, cpIndex) => (
             <div key={direction} className="mb-4">
@@ -148,7 +178,7 @@ const Index = () => {
                     min="-0.5"
                     max="0.5"
                     step="0.01"
-                    value={controlPoints[selectedPoint * 4 + cpIndex].x}
+                    value={controlPoints[selectedPoint * 4 + cpIndex].x.toFixed(2)}
                     onChange={(e) => handleControlPointChange(cpIndex, 'x', e.target.value)}
                   />
                 </div>
@@ -160,7 +190,7 @@ const Index = () => {
                     min="-0.5"
                     max="0.5"
                     step="0.01"
-                    value={controlPoints[selectedPoint * 4 + cpIndex].y}
+                    value={controlPoints[selectedPoint * 4 + cpIndex].y.toFixed(2)}
                     onChange={(e) => handleControlPointChange(cpIndex, 'y', e.target.value)}
                   />
                 </div>
