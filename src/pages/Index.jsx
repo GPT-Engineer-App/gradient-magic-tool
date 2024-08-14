@@ -1,7 +1,7 @@
 import React, { useReducer } from 'react';
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import WebGLMeshGradient from '@/components/WebGLMeshGradient';
+import WebGLMeshGradient, { shaderOptions } from '@/components/WebGLMeshGradient';
 import PointsOverlay from '@/components/PointsOverlay';
 import PointEditor from '@/components/PointEditor';
 import { createInitialState, meshReducer } from '../reducers/meshReducer';
@@ -10,7 +10,7 @@ const Index = () => {
   const [meshState, dispatch] = useReducer(meshReducer, 3, createInitialState);
   const [renderer, setRenderer] = React.useState('webgl');
   const [selectedPoint, setSelectedPoint] = React.useState(0);
-  const [useImprovedShader, setUseImprovedShader] = React.useState(false);
+  const [selectedShader, setSelectedShader] = React.useState('original');
   const containerRef = React.useRef(null);
 
   React.useEffect(() => {
@@ -78,18 +78,21 @@ const Index = () => {
           </SelectContent>
         </Select>
       </div>
-      <div className="mb-4">
-        <Label htmlFor="shader-select">Shader:</Label>
-        <Select value={useImprovedShader ? 'improved' : 'original'} onValueChange={(value) => setUseImprovedShader(value === 'improved')}>
-          <SelectTrigger id="shader-select">
-            <SelectValue placeholder="Select shader" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="original">Original</SelectItem>
-            <SelectItem value="improved">Improved</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      {renderer === 'webgl' && (
+        <div className="mb-4">
+          <Label htmlFor="shader-select">Shader:</Label>
+          <Select value={selectedShader} onValueChange={setSelectedShader}>
+            <SelectTrigger id="shader-select">
+              <SelectValue placeholder="Select shader" />
+            </SelectTrigger>
+            <SelectContent>
+              {shaderOptions.map(option => (
+                <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       <div className="flex flex-col md:flex-row gap-8">
         <div className="w-full md:w-1/2 relative" ref={containerRef}>
           <div className="aspect-square relative overflow-visible">
@@ -99,7 +102,7 @@ const Index = () => {
               points={meshState.points}
               colors={meshState.colors}
               controlPoints={meshState.controlPoints}
-              useImprovedShader={useImprovedShader}
+              selectedShader={selectedShader}
             />
             <PointsOverlay
               points={meshState.points}

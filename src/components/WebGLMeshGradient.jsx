@@ -1,8 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 import { originalVertexShader, originalFragmentShader } from '../shaders/originalShader';
-import { improvedVertexShader, improvedFragmentShader } from '../shaders/improvedShader';
+import { voronoiVertexShader, voronoiFragmentShader } from '../shaders/voronoiShader';
 
-const WebGLMeshGradient = ({ width, height, points, colors, controlPoints, useImprovedShader = false }) => {
+export const shaderOptions = [
+  { id: 'original', label: 'Original' },
+  { id: 'voronoi', label: 'Voronoi' },
+  // Add more shader options here as they become available
+];
+
+const WebGLMeshGradient = ({ width, height, points, colors, controlPoints, selectedShader }) => {
   const canvasRef = useRef(null);
   const glRef = useRef(null);
   const programRef = useRef(null);
@@ -73,10 +79,19 @@ const WebGLMeshGradient = ({ width, height, points, colors, controlPoints, useIm
       return program;
     };
 
-    const program = setupProgram(gl, 
-      useImprovedShader ? improvedVertexShader : originalVertexShader,
-      useImprovedShader ? improvedFragmentShader : originalFragmentShader
-    );
+    let vertexShader, fragmentShader;
+    switch (selectedShader) {
+      case 'voronoi':
+        vertexShader = voronoiVertexShader;
+        fragmentShader = voronoiFragmentShader;
+        break;
+      case 'original':
+      default:
+        vertexShader = originalVertexShader;
+        fragmentShader = originalFragmentShader;
+    }
+
+    const program = setupProgram(gl, vertexShader, fragmentShader);
 
     if (!program) return;
 
@@ -97,7 +112,7 @@ const WebGLMeshGradient = ({ width, height, points, colors, controlPoints, useIm
     return () => {
       gl.deleteProgram(program);
     };
-  }, [useImprovedShader]); // Re-run when shader choice changes
+  }, [selectedShader]); // Re-run when shader choice changes
 
   useEffect(() => {
     const gl = glRef.current;
@@ -109,7 +124,7 @@ const WebGLMeshGradient = ({ width, height, points, colors, controlPoints, useIm
 
     updateUniforms();
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-  }, [width, height, points, colors, controlPoints, useImprovedShader]);
+  }, [width, height, points, colors, controlPoints, selectedShader]);
 
   const updateUniforms = () => {
     const gl = glRef.current;
