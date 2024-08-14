@@ -19,83 +19,24 @@ uniform vec2 u_controlPoints[36];
 uniform int u_width;
 uniform int u_height;
 
-// Cubic Bézier interpolation
-vec2 cubicBezier(vec2 p0, vec2 p1, vec2 p2, vec2 p3, float t) {
-    float t2 = t * t;
-    float t3 = t2 * t;
-    float mt = 1.0 - t;
-    float mt2 = mt * mt;
-    float mt3 = mt2 * mt;
-    return mt3 * p0 + 3.0 * mt2 * t * p1 + 3.0 * mt * t2 * p2 + t3 * p3;
-}
-
-// Bicubic Bézier patch interpolation
-vec2 bicubicBezier(vec2 p[16], vec2 t) {
-    vec2 temp[4];
-    for (int i = 0; i < 4; i++) {
-        temp[i] = cubicBezier(p[i*4], p[i*4+1], p[i*4+2], p[i*4+3], t.x);
-    }
-    return cubicBezier(temp[0], temp[1], temp[2], temp[3], t.y);
-}
-
-// Improved color interpolation
-vec3 improvedColorInterpolation(vec3 colors[4], vec2 t) {
-    vec3 c0 = mix(colors[0], colors[1], t.x);
-    vec3 c1 = mix(colors[2], colors[3], t.x);
-    return mix(c0, c1, t.y);
+float gaussianWeight(float dist, float sigma) {
+    return exp(-dist * dist / (2.0 * sigma * sigma));
 }
 
 void main() {
-    // Flip Y-coordinate
     vec2 pos = vec2(v_texCoord.x, 1.0 - v_texCoord.y);
-
-    // Find the four closest points to the current position
-    int closestIndices[4];
-    float closestDistances[4];
-    for (int i = 0; i < 4; i++) {
-        closestIndices[i] = -1;
-        closestDistances[i] = 1000000.0;
-    }
+    vec3 totalColor = vec3(0.0);
+    float totalWeight = 0.0;
+    float sigma = 0.25; // Adjust this value to control the smoothness of the gradient
 
     for (int i = 0; i < 9; i++) {
         float dist = distance(pos, u_points[i]);
-        for (int j = 0; j < 4; j++) {
-            if (dist < closestDistances[j]) {
-                for (int k = 3; k > j; k--) {
-                    closestIndices[k] = closestIndices[k-1];
-                    closestDistances[k] = closestDistances[k-1];
-                }
-                closestIndices[j] = i;
-                closestDistances[j] = dist;
-                break;
-            }
-        }
+        float weight = gaussianWeight(dist, sigma);
+        totalColor += u_colors[i] * weight;
+        totalWeight += weight;
     }
 
-    // Construct the Bézier patch using the four closest points
-    vec2 p[16];
-    vec3 c[4];
-    for (int i = 0; i < 4; i++) {
-        int idx = closestIndices[i];
-        p[i*4] = u_points[idx];
-        c[i] = u_colors[idx];
-
-        // Control points
-        p[i*4 + 1] = p[i*4] + u_controlPoints[idx * 4 + 1];
-        p[i*4 + 2] = p[i*4] + u_controlPoints[idx * 4 + 2];
-        p[i*4 + 3] = p[i*4] + u_controlPoints[idx * 4 + 3];
-    }
-
-    // Calculate local coordinates within the patch
-    vec2 localCoord;
-    localCoord.x = distance(pos, p[0]) / (distance(p[0], p[12]) + 0.0001);
-    localCoord.y = distance(pos, p[0]) / (distance(p[0], p[3]) + 0.0001);
-    localCoord = clamp(localCoord, 0.0, 1.0);
-
-    // Interpolate position and color
-    vec2 finalPos = bicubicBezier(p, localCoord);
-    vec3 finalColor = improvedColorInterpolation(c, localCoord);
-    
+    vec3 finalColor = totalColor / totalWeight;
     fragColor = vec4(finalColor, 1.0);
 }
 `;
