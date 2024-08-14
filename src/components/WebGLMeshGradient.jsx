@@ -52,11 +52,13 @@ vec3 colorInterpolation(vec3 c0, vec3 c1, vec3 c2, vec3 c3, float t) {
 
 void main() {
     // Determine which cell the current pixel is in
+    // Note: We flip the y-coordinate here to match our UI coordinate system
     int i = int(v_texCoord.x * 2.0);
-    int j = int(v_texCoord.y * 2.0);
+    int j = int((1.0 - v_texCoord.y) * 2.0);
     
     // Calculate local coordinates within the cell
-    vec2 localCoord = fract(v_texCoord * 2.0);
+    // Note: We flip the y-coordinate here as well
+    vec2 localCoord = vec2(fract(v_texCoord.x * 2.0), 1.0 - fract(v_texCoord.y * 2.0));
     
     // Gather the 4 corner points, colors, and control points for this cell
     vec2 p[16];
@@ -74,6 +76,7 @@ void main() {
     colors[3] = u_colors[index + 4];
     
     // Control points
+    // Note: We don't flip control points as they are relative offsets
     p[1] = p[0] + u_controlPoints[index * 4 + 1];      // right control point of p0
     p[2] = p[3] + u_controlPoints[(index + 1) * 4 + 3]; // left control point of p3
     p[4] = p[0] + u_controlPoints[index * 4 + 2];      // bottom control point of p0
