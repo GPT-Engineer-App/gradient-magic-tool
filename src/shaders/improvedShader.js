@@ -58,9 +58,8 @@ vec3 bicubicColorInterpolation(vec3 c[16], vec2 t) {
 }
 
 void main() {
-    vec2 pos = v_texCoord;
-    vec2 p[16];
-    vec3 c[16];
+    // Flip Y-coordinate
+    vec2 pos = vec2(v_texCoord.x, 1.0 - v_texCoord.y);
 
     // Find the four closest points to the current position
     int closestIndices[4];
@@ -86,6 +85,8 @@ void main() {
     }
 
     // Construct the Bézier patch using the four closest points
+    vec2 p[16];
+    vec3 c[16];
     for (int i = 0; i < 4; i++) {
         int idx = closestIndices[i];
         p[i*4] = u_points[idx];
