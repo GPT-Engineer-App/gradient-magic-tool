@@ -19,25 +19,36 @@ uniform vec2 u_controlPoints[36];
 uniform int u_width;
 uniform int u_height;
 
-float gaussianWeight(float dist, float sigma) {
-    return exp(-dist * dist / (2.0 * sigma * sigma));
+float voronoiWeight(float dist, float sharpness) {
+    return 1.0 / pow(dist, sharpness);
 }
 
 void main() {
     vec2 pos = vec2(v_texCoord.x, 1.0 - v_texCoord.y);
     vec3 totalColor = vec3(0.0);
     float totalWeight = 0.0;
-    float sigma = 0.25; // Adjust this value to control the smoothness of the gradient
+    float sharpness = 8.0; // Adjust this value to control the sharpness of color transitions
+
+    float closestDist = 1000.0;
+    vec3 closestColor = vec3(0.0);
 
     for (int i = 0; i < 9; i++) {
         float dist = distance(pos, u_points[i]);
-        float weight = gaussianWeight(dist, sigma);
+        if (dist < closestDist) {
+            closestDist = dist;
+            closestColor = u_colors[i];
+        }
+        float weight = voronoiWeight(dist, sharpness);
         totalColor += u_colors[i] * weight;
         totalWeight += weight;
     }
 
-    vec3 finalColor = totalColor / totalWeight;
+    vec3 voronoiColor = totalColor / totalWeight;
     
+    // Blend between Voronoi and closest color based on distance
+    float blendFactor = smoothstep(0.0, 0.1, closestDist);
+    vec3 finalColor = mix(closestColor, voronoiColor, blendFactor);
+
     fragColor = vec4(finalColor, 1.0);
 }
 `;
