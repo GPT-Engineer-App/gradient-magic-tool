@@ -41,28 +41,21 @@ vec2 bicubicBezier(vec2 p[16], vec2 t) {
 }
 
 // Color interpolation
-vec3 colorInterpolation(vec3 c0, vec3 c1, vec3 c2, vec3 c3, float t) {
-    float t2 = t * t;
-    float t3 = t2 * t;
-    float mt = 1.0 - t;
-    float mt2 = mt * mt;
-    float mt3 = mt2 * mt;
-    return mt3 * c0 + 3.0 * mt2 * t * c1 + 3.0 * mt * t2 * c2 + t3 * c3;
+vec3 colorInterpolation(vec3 c0, vec3 c1, vec3 c2, vec3 c3, vec2 t) {
+    vec3 c01 = mix(c0, c1, t.x);
+    vec3 c23 = mix(c2, c3, t.x);
+    return mix(c01, c23, t.y);
 }
 
 void main() {
-    // Flip Y-coordinate for WebGL coordinate system
-    // WebGL uses bottom-left as (0,0), while our UI uses top-left as (0,0)
-    vec2 texCoord = vec2(v_texCoord.x, 1.0 - v_texCoord.y);
-    
     // Determine which cell the current pixel is in
-    int i = int(texCoord.x * float(u_width - 1));
-    int j = int(texCoord.y * float(u_height - 1));
+    int i = int(v_texCoord.x * float(u_width - 1));
+    int j = int(v_texCoord.y * float(u_height - 1));
     
     // Calculate local coordinates within the cell
     vec2 localCoord = vec2(
-        fract(texCoord.x * float(u_width - 1)),
-        fract(texCoord.y * float(u_height - 1))
+        fract(v_texCoord.x * float(u_width - 1)),
+        fract(v_texCoord.y * float(u_height - 1))
     );
     
     // Gather the 4 corner points, colors, and control points for this cell
@@ -101,12 +94,7 @@ void main() {
     vec2 pos = bicubicBezier(p, localCoord);
     
     // Interpolate color
-    vec3 colorTop = colorInterpolation(colors[0], mix(colors[0], colors[1], 0.33333),
-                                       mix(colors[0], colors[1], 0.66667), colors[1], localCoord.x);
-    vec3 colorBottom = colorInterpolation(colors[2], mix(colors[2], colors[3], 0.33333),
-                                          mix(colors[2], colors[3], 0.66667), colors[3], localCoord.x);
-    vec3 finalColor = colorInterpolation(colorTop, mix(colorTop, colorBottom, 0.33333),
-                                         mix(colorTop, colorBottom, 0.66667), colorBottom, localCoord.y);
+    vec3 finalColor = colorInterpolation(colors[0], colors[1], colors[2], colors[3], localCoord);
     
     fragColor = vec4(finalColor, 1.0);
 }
