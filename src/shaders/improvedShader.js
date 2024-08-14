@@ -38,73 +38,74 @@ vec2 bicubicBezier(vec2 p[16], vec2 t) {
     return cubicBezier(temp[0], temp[1], temp[2], temp[3], t.y);
 }
 
-// Find the cell containing the current pixel
-ivec2 findCell(vec2 pos) {
-    for (int i = 0; i < u_width - 1; i++) {
-        for (int j = 0; j < u_height - 1; j++) {
-            int idx = j * u_width + i;
-            vec2 p00 = u_points[idx];
-            vec2 p10 = u_points[idx + 1];
-            vec2 p01 = u_points[idx + u_width];
-            vec2 p11 = u_points[idx + u_width + 1];
-            
-            // Check if pos is inside this cell (approximate)
-            if (pos.x >= min(p00.x, min(p10.x, min(p01.x, p11.x))) &&
-                pos.x <= max(p00.x, max(p10.x, max(p01.x, p11.x))) &&
-                pos.y >= min(p00.y, min(p10.y, min(p01.y, p11.y))) &&
-                pos.y <= max(p00.y, max(p10.y, max(p01.y, p11.y)))) {
-                return ivec2(i, j);
-            }
-        }
+// Cubic color interpolation
+vec3 cubicColorInterpolation(vec3 c0, vec3 c1, vec3 c2, vec3 c3, float t) {
+    float t2 = t * t;
+    float t3 = t2 * t;
+    float mt = 1.0 - t;
+    float mt2 = mt * mt;
+    float mt3 = mt2 * mt;
+    return mt3 * c0 + 3.0 * mt2 * t * c1 + 3.0 * mt * t2 * c2 + t3 * c3;
+}
+
+// Bicubic color interpolation
+vec3 bicubicColorInterpolation(vec3 c[16], vec2 t) {
+    vec3 temp[4];
+    for (int i = 0; i < 4; i++) {
+        temp[i] = cubicColorInterpolation(c[i*4], c[i*4+1], c[i*4+2], c[i*4+3], t.x);
     }
-    return ivec2(0, 0); // Fallback
+    return cubicColorInterpolation(temp[0], temp[1], temp[2], temp[3], t.y);
 }
 
 void main() {
     vec2 pos = v_texCoord;
-    ivec2 cell = findCell(pos);
-    int idx = cell.y * u_width + cell.x;
-    
-    // Gather corner points and control points
     vec2 p[16];
-    p[0] = u_points[idx];
-    p[3] = u_points[idx + 1];
-    p[12] = u_points[idx + u_width];
-    p[15] = u_points[idx + u_width + 1];
-    
-    // Control points
-    p[1] = p[0] + u_controlPoints[idx * 4 + 1];
-    p[2] = p[3] + u_controlPoints[(idx + 1) * 4 + 3];
-    p[4] = p[0] + u_controlPoints[idx * 4 + 2];
-    p[7] = p[3] + u_controlPoints[(idx + 1) * 4 + 2];
-    p[8] = p[12] + u_controlPoints[(idx + u_width) * 4];
-    p[11] = p[15] + u_controlPoints[(idx + u_width + 1) * 4 + 3];
-    p[13] = p[12] + u_controlPoints[(idx + u_width) * 4 + 1];
-    p[14] = p[15] + u_controlPoints[(idx + u_width + 1) * 4];
-    
-    // Interior control points (can be improved for better curve shaping)
-    p[5] = mix(p[4], p[7], 0.33333);
-    p[6] = mix(p[4], p[7], 0.66667);
-    p[9] = mix(p[8], p[11], 0.33333);
-    p[10] = mix(p[8], p[11], 0.66667);
-    
-    // Find local coordinates within the cell
-    vec2 cellSize = vec2(1.0 / float(u_width - 1), 1.0 / float(u_height - 1));
-    vec2 localPos = (pos - vec2(float(cell.x) * cellSize.x, float(cell.y) * cellSize.y)) / cellSize;
-    
-    // Interpolate position
-    vec2 finalPos = bicubicBezier(p, localPos);
-    
-    // Interpolate color (using bilinear interpolation for simplicity, can be extended to bicubic)
-    vec3 c00 = u_colors[idx];
-    vec3 c10 = u_colors[idx + 1];
-    vec3 c01 = u_colors[idx + u_width];
-    vec3 c11 = u_colors[idx + u_width + 1];
-    vec3 finalColor = mix(
-        mix(c00, c10, localPos.x),
-        mix(c01, c11, localPos.x),
-        localPos.y
-    );
+    vec3 c[16];
+
+    // Construct the Bézier patch
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            int idx = i * 4 + j;
+            int pointIdx = (i / 3) * u_width + (j / 3);
+            
+            if (i % 3 == 0 && j % 3 == 0) {
+                // Corner points
+                p[idx] = u_points[pointIdx];
+                c[idx] = u_colors[pointIdx];
+            } else {
+                // Control points
+                int cornerIdx = (i / 3) * u_width + (j / 3);
+                vec2 cornerPoint = u_points[cornerIdx];
+                int cpIdx = cornerIdx * 4;
+                
+                if (i % 3 == 0) {
+                    // Horizontal control points
+                    p[idx] = cornerPoint + u_controlPoints[cpIdx + (j % 3 == 1 ? 1 : 3)];
+                } else if (j % 3 == 0) {
+                    // Vertical control points
+                    p[idx] = cornerPoint + u_controlPoints[cpIdx + (i % 3 == 1 ? 0 : 2)];
+                } else {
+                    // Interior control points (can be improved for better curve shaping)
+                    vec2 h1 = cornerPoint + u_controlPoints[cpIdx + 1];
+                    vec2 h2 = u_points[cornerIdx + 1] + u_controlPoints[(cornerIdx + 1) * 4 + 3];
+                    vec2 v1 = cornerPoint + u_controlPoints[cpIdx + 2];
+                    vec2 v2 = u_points[cornerIdx + u_width] + u_controlPoints[(cornerIdx + u_width) * 4];
+                    p[idx] = mix(mix(h1, h2, 0.5), mix(v1, v2, 0.5), 0.5);
+                }
+                
+                // Interpolate colors for control points
+                c[idx] = mix(
+                    mix(u_colors[cornerIdx], u_colors[cornerIdx + 1], float(j) / 3.0),
+                    mix(u_colors[cornerIdx + u_width], u_colors[cornerIdx + u_width + 1], float(j) / 3.0),
+                    float(i) / 3.0
+                );
+            }
+        }
+    }
+
+    // Interpolate position and color
+    vec2 finalPos = bicubicBezier(p, pos);
+    vec3 finalColor = bicubicColorInterpolation(c, pos);
     
     fragColor = vec4(finalColor, 1.0);
 }
