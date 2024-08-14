@@ -62,50 +62,55 @@ void main() {
     vec2 p[16];
     vec3 c[16];
 
-    // Construct the Bézier patch
+    // Find the four closest points to the current position
+    int closestIndices[4];
+    float closestDistances[4];
     for (int i = 0; i < 4; i++) {
+        closestIndices[i] = -1;
+        closestDistances[i] = 1000000.0;
+    }
+
+    for (int i = 0; i < 9; i++) {
+        float dist = distance(pos, u_points[i]);
         for (int j = 0; j < 4; j++) {
-            int idx = i * 4 + j;
-            int pointIdx = (i / 3) * u_width + (j / 3);
-            
-            if (i % 3 == 0 && j % 3 == 0) {
-                // Corner points
-                p[idx] = u_points[pointIdx];
-                c[idx] = u_colors[pointIdx];
-            } else {
-                // Control points
-                int cornerIdx = (i / 3) * u_width + (j / 3);
-                vec2 cornerPoint = u_points[cornerIdx];
-                int cpIdx = cornerIdx * 4;
-                
-                if (i % 3 == 0) {
-                    // Horizontal control points
-                    p[idx] = cornerPoint + u_controlPoints[cpIdx + (j % 3 == 1 ? 1 : 3)];
-                } else if (j % 3 == 0) {
-                    // Vertical control points
-                    p[idx] = cornerPoint + u_controlPoints[cpIdx + (i % 3 == 1 ? 0 : 2)];
-                } else {
-                    // Interior control points (can be improved for better curve shaping)
-                    vec2 h1 = cornerPoint + u_controlPoints[cpIdx + 1];
-                    vec2 h2 = u_points[cornerIdx + 1] + u_controlPoints[(cornerIdx + 1) * 4 + 3];
-                    vec2 v1 = cornerPoint + u_controlPoints[cpIdx + 2];
-                    vec2 v2 = u_points[cornerIdx + u_width] + u_controlPoints[(cornerIdx + u_width) * 4];
-                    p[idx] = mix(mix(h1, h2, 0.5), mix(v1, v2, 0.5), 0.5);
+            if (dist < closestDistances[j]) {
+                for (int k = 3; k > j; k--) {
+                    closestIndices[k] = closestIndices[k-1];
+                    closestDistances[k] = closestDistances[k-1];
                 }
-                
-                // Interpolate colors for control points
-                c[idx] = mix(
-                    mix(u_colors[cornerIdx], u_colors[cornerIdx + 1], float(j) / 3.0),
-                    mix(u_colors[cornerIdx + u_width], u_colors[cornerIdx + u_width + 1], float(j) / 3.0),
-                    float(i) / 3.0
-                );
+                closestIndices[j] = i;
+                closestDistances[j] = dist;
+                break;
             }
         }
     }
 
+    // Construct the Bézier patch using the four closest points
+    for (int i = 0; i < 4; i++) {
+        int idx = closestIndices[i];
+        p[i*4] = u_points[idx];
+        c[i*4] = u_colors[idx];
+
+        // Control points
+        p[i*4 + 1] = p[i*4] + u_controlPoints[idx * 4 + 1];
+        p[i*4 + 2] = p[i*4] + u_controlPoints[idx * 4 + 2];
+        p[i*4 + 3] = p[i*4] + u_controlPoints[idx * 4 + 3];
+
+        // Interpolate colors for control points
+        c[i*4 + 1] = mix(c[i*4], c[(i*4+4) % 16], 0.33333);
+        c[i*4 + 2] = mix(c[i*4], c[(i*4+4) % 16], 0.66667);
+        c[i*4 + 3] = c[(i*4+4) % 16];
+    }
+
+    // Calculate local coordinates within the patch
+    vec2 localCoord;
+    localCoord.x = distance(pos, p[0]) / (distance(p[0], p[12]) + 0.0001);
+    localCoord.y = distance(pos, p[0]) / (distance(p[0], p[3]) + 0.0001);
+    localCoord = clamp(localCoord, 0.0, 1.0);
+
     // Interpolate position and color
-    vec2 finalPos = bicubicBezier(p, pos);
-    vec3 finalColor = bicubicColorInterpolation(c, pos);
+    vec2 finalPos = bicubicBezier(p, localCoord);
+    vec3 finalColor = bicubicColorInterpolation(c, localCoord);
     
     fragColor = vec4(finalColor, 1.0);
 }
