@@ -51,18 +51,18 @@ vec3 colorInterpolation(vec3 c0, vec3 c1, vec3 c2, vec3 c3, float t) {
 }
 
 void main() {
-    // IMPORTANT: WebGL's coordinate system has (0,0) at the bottom-left, while our UI uses top-left
-    // We need to flip the Y-coordinate here to match our UI coordinate system
-    vec2 flippedTexCoord = vec2(v_texCoord.x, 1.0 - v_texCoord.y);
+    // WebGL's coordinate system has (0,0) at the bottom-left, our UI uses top-left
+    // No need to flip Y-coordinate here as it's already flipped in updateUniforms
+    vec2 texCoord = v_texCoord;
     
     // Determine which cell the current pixel is in
-    int i = int(flippedTexCoord.x * float(u_width - 1));
-    int j = int(flippedTexCoord.y * float(u_height - 1));
+    int i = int(texCoord.x * float(u_width - 1));
+    int j = int(texCoord.y * float(u_height - 1));
     
     // Calculate local coordinates within the cell
     vec2 localCoord = vec2(
-        fract(flippedTexCoord.x * float(u_width - 1)),
-        fract(flippedTexCoord.y * float(u_height - 1))
+        fract(texCoord.x * float(u_width - 1)),
+        fract(texCoord.y * float(u_height - 1))
     );
     
     // Gather the 4 corner points, colors, and control points for this cell
