@@ -51,8 +51,7 @@ vec3 colorInterpolation(vec3 c0, vec3 c1, vec3 c2, vec3 c3, float t) {
 }
 
 void main() {
-    // WebGL's coordinate system has (0,0) at the bottom-left, our UI uses top-left
-    // No need to flip Y-coordinate here as it's already flipped in updateUniforms
+    // Use texture coordinates directly without flipping
     vec2 texCoord = v_texCoord;
     
     // Determine which cell the current pixel is in
@@ -214,13 +213,9 @@ const WebGLMeshGradient = ({ width, height, points, colors, controlPoints }) => 
     const uniformLocations = uniformLocationsRef.current;
     if (!gl || !uniformLocations) return;
 
-    // IMPORTANT: WebGL's coordinate system has (0,0) at the bottom-left, while our UI uses top-left
-    // We need to flip the Y-axis once when passing point coordinates to WebGL
-    const flatPoints = points.flatMap(p => [p.x, 1.0 - p.y]);
+    // Pass point coordinates directly to WebGL without flipping
+    const flatPoints = points.flatMap(p => [p.x, p.y]);
     gl.uniform2fv(uniformLocations.points, flatPoints);
-
-    // Debug: Log flat points
-    console.log('Flat points:', flatPoints);
 
     const flatColors = colors.flatMap(c => {
       const hex = c.replace('#', '');
