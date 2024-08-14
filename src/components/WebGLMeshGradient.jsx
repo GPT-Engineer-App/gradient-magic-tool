@@ -204,6 +204,9 @@ const WebGLMeshGradient = ({ width, height, points, colors, controlPoints }) => 
 
     updateUniforms();
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    // Debug: Log points after updating uniforms
+    console.log('Points after update:', points);
   }, [width, height, points, colors, controlPoints]); // Re-run when these props change
 
   const updateUniforms = () => {
@@ -215,6 +218,9 @@ const WebGLMeshGradient = ({ width, height, points, colors, controlPoints }) => 
     // We need to flip the Y-axis once when passing point coordinates to WebGL
     const flatPoints = points.flatMap(p => [p.x, 1.0 - p.y]);
     gl.uniform2fv(uniformLocations.points, flatPoints);
+
+    // Debug: Log flat points
+    console.log('Flat points:', flatPoints);
 
     const flatColors = colors.flatMap(c => {
       const hex = c.replace('#', '');
@@ -237,6 +243,15 @@ const WebGLMeshGradient = ({ width, height, points, colors, controlPoints }) => 
 
     gl.uniform1i(uniformLocations.width, width);
     gl.uniform1i(uniformLocations.height, height);
+
+    // Debug: Log uniform values
+    console.log('Uniform values:', {
+      points: flatPoints,
+      colors: flatColors,
+      controlPoints: flatControlPoints,
+      width,
+      height
+    });
   };
 
   return (
