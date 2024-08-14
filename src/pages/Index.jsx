@@ -10,6 +10,7 @@ const Index = () => {
   const [meshState, dispatch] = useReducer(meshReducer, 3, createInitialState);
   const [renderer, setRenderer] = React.useState('webgl');
   const [selectedPoint, setSelectedPoint] = React.useState(0);
+  const [useImprovedShader, setUseImprovedShader] = React.useState(false);
   const containerRef = React.useRef(null);
 
   React.useEffect(() => {
@@ -77,6 +78,18 @@ const Index = () => {
           </SelectContent>
         </Select>
       </div>
+      <div className="mb-4">
+        <Label htmlFor="shader-select">Shader:</Label>
+        <Select value={useImprovedShader ? 'improved' : 'original'} onValueChange={(value) => setUseImprovedShader(value === 'improved')}>
+          <SelectTrigger id="shader-select">
+            <SelectValue placeholder="Select shader" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="original">Original</SelectItem>
+            <SelectItem value="improved">Improved</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       <div className="flex flex-col md:flex-row gap-8">
         <div className="w-full md:w-1/2 relative" ref={containerRef}>
           <div className="aspect-square relative overflow-visible">
@@ -86,6 +99,7 @@ const Index = () => {
               points={meshState.points}
               colors={meshState.colors}
               controlPoints={meshState.controlPoints}
+              useImprovedShader={useImprovedShader}
             />
             <PointsOverlay
               points={meshState.points}
