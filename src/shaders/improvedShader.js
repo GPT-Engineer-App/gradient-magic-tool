@@ -38,23 +38,11 @@ vec2 bicubicBezier(vec2 p[16], vec2 t) {
     return cubicBezier(temp[0], temp[1], temp[2], temp[3], t.y);
 }
 
-// Cubic color interpolation
-vec3 cubicColorInterpolation(vec3 c0, vec3 c1, vec3 c2, vec3 c3, float t) {
-    float t2 = t * t;
-    float t3 = t2 * t;
-    float mt = 1.0 - t;
-    float mt2 = mt * mt;
-    float mt3 = mt2 * mt;
-    return mt3 * c0 + 3.0 * mt2 * t * c1 + 3.0 * mt * t2 * c2 + t3 * c3;
-}
-
-// Bicubic color interpolation
-vec3 bicubicColorInterpolation(vec3 c[16], vec2 t) {
-    vec3 temp[4];
-    for (int i = 0; i < 4; i++) {
-        temp[i] = cubicColorInterpolation(c[i*4], c[i*4+1], c[i*4+2], c[i*4+3], t.x);
-    }
-    return cubicColorInterpolation(temp[0], temp[1], temp[2], temp[3], t.y);
+// Improved color interpolation
+vec3 improvedColorInterpolation(vec3 colors[4], vec2 t) {
+    vec3 c0 = mix(colors[0], colors[1], t.x);
+    vec3 c1 = mix(colors[2], colors[3], t.x);
+    return mix(c0, c1, t.y);
 }
 
 void main() {
@@ -86,21 +74,16 @@ void main() {
 
     // Construct the Bézier patch using the four closest points
     vec2 p[16];
-    vec3 c[16];
+    vec3 c[4];
     for (int i = 0; i < 4; i++) {
         int idx = closestIndices[i];
         p[i*4] = u_points[idx];
-        c[i*4] = u_colors[idx];
+        c[i] = u_colors[idx];
 
         // Control points
         p[i*4 + 1] = p[i*4] + u_controlPoints[idx * 4 + 1];
         p[i*4 + 2] = p[i*4] + u_controlPoints[idx * 4 + 2];
         p[i*4 + 3] = p[i*4] + u_controlPoints[idx * 4 + 3];
-
-        // Interpolate colors for control points
-        c[i*4 + 1] = mix(c[i*4], c[(i*4+4) % 16], 0.33333);
-        c[i*4 + 2] = mix(c[i*4], c[(i*4+4) % 16], 0.66667);
-        c[i*4 + 3] = c[(i*4+4) % 16];
     }
 
     // Calculate local coordinates within the patch
@@ -111,7 +94,7 @@ void main() {
 
     // Interpolate position and color
     vec2 finalPos = bicubicBezier(p, localCoord);
-    vec3 finalColor = bicubicColorInterpolation(c, localCoord);
+    vec3 finalColor = improvedColorInterpolation(c, localCoord);
     
     fragColor = vec4(finalColor, 1.0);
 }
