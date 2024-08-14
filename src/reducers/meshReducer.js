@@ -1,13 +1,26 @@
 import { clamp } from '../utils/mathUtils';
 
+const predefinedColors = [
+  '#ff6b6b', // Red
+  '#4ecdc4', // Teal
+  '#45aaf2', // Blue
+  '#fed330', // Yellow
+  '#fd9644', // Orange
+  '#a55eea', // Purple
+  '#26de81', // Green
+  '#fd79a8', // Pink
+  '#4b7bec'  // Royal Blue
+];
+
 const createInitialState = (width = 3, height = 3) => {
   const points = Array.from({ length: width * height }, (_, index) => ({
     x: (index % width) / (width - 1),
     y: Math.floor(index / width) / (height - 1)
   }));
 
-  const colors = Array.from({ length: width * height }, () => 
-    `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0')}`
+  // TODO: Implement a more sophisticated color selection algorithm for larger gradients
+  const colors = Array.from({ length: width * height }, (_, index) => 
+    predefinedColors[index % predefinedColors.length]
   );
 
   const controlPoints = Array.from({ length: width * height }, () => ({
